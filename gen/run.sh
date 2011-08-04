@@ -15,6 +15,13 @@ CDI=$(dirname "${CDI}")
 TRG=$(dirname "${SRC}")
 TRG="${TRG}/root"
 
+xno=$(echo $* | grep no2gis)
+if [ -z "$xno" ];
+then
+	echo "## update 2gis"
+	"${CDI}/2gis_upd.sh" "${SRC}" "/usr/local/wine-exec"
+fi
+
 xno=$(echo $* | grep noroot)
 if [ -z "$xno" ];
 then
