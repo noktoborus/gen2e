@@ -1,0 +1,94 @@
+
+Подготовка образа x86 gentoo на хостовой x86_64, для запуска по сети.
+
+|
+|\
+| ch_gentoo: корневая директория новой системы
+|\
+| gen: скрипты для генерации образа и упаковки initrd
+
+1. скачиваем stage3, к примеру, отсюда: http://mirror.yandex.ru/gentoo-distfiles/releases/x86/current-stage3/
+	берём последнюю версию, к примеру http://mirror.yandex.ru/gentoo-distfiles/releases/x86/current-stage3/stage3-i686-20110802.tar.bz2
+
+2. распаковываем в ./ch_gentoo:
+	( cd ch_gentoo; tar -xvf stage3-i686-20110802.tar.bz2 )
+
+3. накладываем последнюю сборку конфигов.
+	git reset --hard
+
+4. указываем верные dns-сервера для вложенной системы в ch_gentoo/etc/resolv.conf
+
+5. чрутимся, собираем layman
+	mount -t proc none ch_gentoo/proc
+	mount -t sysfs none ch_gentoo/sysfs
+	linux32 chroot ch_gentoo /bin/bash
+	# twinkle находится в оверлее kde-sunset, по этому придётся подредактировать /etc/make.conf
+	# убрав оттуда строчки 'source "/var/lib/layman/make.conf"'
+	emerge --sync
+	emerge ccache layman
+	layman -a kde-sunset
+	# теперь нужно вернуть строчку 'source "/var/lib/layman/make.conf"' в /etc/make.conf
+	emerge hardened-sources
+	# можно любые другие *-sources, но мне хочется hardened
+
+6. подготавливаем ядро
+	cd /usr/src/linux/
+	make nconfig
+	# собираем как хочется, но не забываем следующие опции:
+	# CONFIG_FHANDLE=y
+	# CONFIG_BLK_DEV_NBD=y
+	# CONFIG_TMPFS=y
+	# так же нужна поддержка ext2
+	make && make install && make modules_install
+
+7. собираем aufs
+	emerge aufs2
+	cd /usr/src/linux
+	make && make install && make modules_install
+	emerge aufs2
+
+8. обновляем систему (и доставляем оставшиеся пакеты)
+	emerge -DNu @world
+
+9. делаем что-нибудь другое
+
+10. настраиваем систему
+	ln -s /etc/init.d/net.lo /etc/init.d/net.eth0
+	rc-update del root boot
+	rc-update del fsck boot
+	rc-update del mtab boot
+	rc-update add 00-rw-sysinit sysinit
+	rc-update add 00-rw-shutdown boot
+	rc-update add net.eth0 boot
+	rc-update add vixie-cron default
+	rc-update add acpid default
+	rc-update add sshd default
+	rc-update add dbus default
+	rc-update add xdm default
+
+11. настраиваем по вкусу
+
+12. выходим из chroot, запускаем генерацию скриптов
+	exit
+	./gen/run.sh
+
+13. раскидываем под директориям
+	./ch_gentoo/boot/vmlinuz*	в tftpboot
+	./initrd.gz	в tftpboot
+	./root.fs	в конфигурацию nbd-server
+
+14. небольшая настройка загрузки ядра
+	в опции ядра (это где append у pxelinux)
+	append root=/dev/ram0 kznbd=192.168.176.1 init-rw-root=on
+	# root=/dev/ram0	чтобы не гулял по дискам
+	# kznbd=192.168.176.1	указываем адрес nbd-сервера, порт указывается через :
+	#		по умолчанию 192.168.176.1:1023
+	# init-rw-root=on	говорим openrc, что мы хотим иметь не ro-систему
+
+15. запускаем nbd-server
+	nbd-server -r 1023 ./root.fs
+
+16. пробуем запуститься
+
+* дефолтного пользователя указывать в /etc/slim.conf (опция default_user)
+
