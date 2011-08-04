@@ -1,0 +1,7 @@
+net-misc/tigervnc server
+dev-db/sqlite unlock-notify secure-delete
+net-print/cups -usb
+net-misc/curl -threads
+sys-fs/udev extras
+sys-fs/aufs2 kernel-patch
+dev-libs/DirectFB sdl

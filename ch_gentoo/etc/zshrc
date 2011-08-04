@@ -1,0 +1,15 @@
+zmodload zsh/complist
+autoload -U promptinit
+promptinit
+prompt adam2
+
+setopt autocd
+setopt append_history SHARE_HISTORY
+setopt HIST_REDUCE_BLANKS
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt notify
+setopt check_jobs
+
+bindkey "\e[A" history-beginning-search-backward
+bindkey "\e[B" history-beginning-search-forward
+

@@ -1,0 +1,17 @@
+net-misc/proxychains ~*
+sys-fs/udev ~*
+sys-kernel/hardened-sources ~*
+net-im/psi ~*
+app-office/libreoffice ~*
+app-text/libwps ~*
+app-text/mythes ~*
+sci-mathematics/lpsolve ~*
+media-libs/libwpg ~*
+dev-util/mdds ~*
+dev-libs/hyphen ~*
+app-text/libwpd ~*
+media-gfx/graphite2 ~*
+xfce-base/thunar ~*
+app-emulation/wine ~*
+sys-fs/aufs2 ~*
+x11-plugins/pidgin-sipe ~*

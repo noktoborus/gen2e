@@ -1,0 +1,12 @@
+# This blank configuration will automatically use DHCP for any net.*
+# scripts in /etc/init.d.  To create a more complete configuration,
+# please review /usr/share/doc/openrc/net.example and save your configuration
+# in /etc/conf.d/net (this file :]!).
+
+nis_domain_lo="vladlink.lan"
+dns_domain_lo="vladlink.lan"
+
+modules_eth0="dhcpcd"
+config_eth0="dhcp"
+dhcpcd_eth0="-p -t 130 -b"
+

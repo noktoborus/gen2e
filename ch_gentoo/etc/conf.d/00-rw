@@ -1,0 +1,45 @@
+#!/bin/sh
+# vim: ft=sh ff=unix fenc=utf-8
+# file: 00-rw
+
+provide_lock="/tmp/_00-rw_allow_provide_now"
+
+_is_allow() {
+	mode=$(cat /proc/cmdline | sed 's/.*init-rw-root=\([a-zA-Z0-9.]*\).*\|.*/\1/')
+	[ x"$mode" = x"on" ] && return 0
+	return 1
+}
+
+switch2tmpfs() {
+	target="$1"
+	store=${2-"/root"}
+	chown_args=${3-""}
+	chmod_args=${4-""}
+	[ -z "$target" ] && return 1
+	ebegin "Setup read/write mode for '$target'"
+	target_ro="${store}/kzsys_ro/$target"
+	target_rw="${store}/kzsys_rw/$target"
+	(
+		for dir in "$target_ro" "$target_rw";
+		do
+			mkdir -p "$dir"
+		done
+		if [ ! -z "$chown_args" ];
+		then
+			einfo "cast \`chown $chown_args \"$target_rw\"'"
+			chown $chown_args "$target_rw"
+		fi
+		if [ ! -z "$chmod_args" ];
+		then
+			einfo "cast \`chmod $chmod_args \"$target_rw\"'"
+			chmod $chmod_args "$target_rw"
+		fi
+		mount --bind -o ro "$target" "$target_ro"
+		[ $? -ne 0 ] && exit 1
+		mount -t aufs\
+			-o "br=${target_rw}=rw:${target_ro}=ro"\
+			none "$target"
+	)
+	eend $?
+}
+

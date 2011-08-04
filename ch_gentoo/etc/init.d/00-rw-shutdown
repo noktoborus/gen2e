@@ -1,0 +1,35 @@
+#!/sbin/runscript
+# Copyright 1999-2011 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Header: $
+
+. "/etc/conf.d/00-rw"
+
+provide_lock=${provide_lock-"/tmp/provide_lock"}
+
+depend() {
+	after net
+	need net
+	_is_allow || return 0
+	[ -e "$provide_lock" ] || return 0
+	for net in `rc-update | sed -e 's/.*\(net\.[^ ]*\).*\|.*/\1/'`;
+	do
+		[ -z "$net" ] && continue
+		einfo "ro-/: add '$net' to provide list"
+		provide "$net"
+	done
+}
+
+start() {
+	_is_allow || return 0
+	touch "$provide_lock"
+	rc-update -u
+	rm -f "$provide_lock"
+	return 0
+}
+
+stop() {
+	einfo "ro-/: Try normaly shutdown"
+	return 0
+}
+
