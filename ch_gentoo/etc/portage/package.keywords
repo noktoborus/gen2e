@@ -6,7 +6,7 @@ app-office/libreoffice ~*
 app-text/libwps ~*
 app-text/mythes ~*
 sci-mathematics/lpsolve ~*
-media-libs/libwpg ~*
+app-text/libwpg ~*
 dev-util/mdds ~*
 dev-libs/hyphen ~*
 app-text/libwpd ~*
