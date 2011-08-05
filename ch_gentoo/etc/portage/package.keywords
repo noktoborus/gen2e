@@ -12,6 +12,7 @@ dev-libs/hyphen ~*
 app-text/libwpd ~*
 media-gfx/graphite2 ~*
 xfce-base/thunar ~*
+dev-python/thunarx-python ~*
 app-emulation/wine ~*
 sys-fs/aufs2 ~*
 x11-plugins/pidgin-sipe ~*
