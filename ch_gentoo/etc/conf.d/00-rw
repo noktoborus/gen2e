@@ -52,7 +52,7 @@ _tftp_untar() {
 	[ -z "$host" -o -z "$path" -o -z "$outpath" ] && return 1
 	cd "$outpath"
 	[ $? -ne 0 ] && return 1
-	( echo "mode binary"; echo "rexmt $timeout"; echo "timeout $timeout"; echo "get $path /dev/stderr" ) | ( tftp "$host" >/dev/null ) 2>&1 | tar -x 2>/dev/null
+	( echo "mode binary"; echo "rexmt $timeout"; echo "timeout $timeout"; echo "get $path /dev/stderr" ) | ( tftp "$host" >/dev/null ) 2>&1 | sudo -u "$user" tar -x 2>/dev/null
 	return $?
 }
 

@@ -55,15 +55,25 @@ start() {
 					then
 						einfo "tftp-tar-unpack: skip '$user'"
 					else
-						_tftp_untar "$tftp" "${tftp_root}/${mac}_${user}" "/home/${user}" "$timeout"
-						[ $? -ne 0 ] && ewarn "tftp-tar-unpack: failed for '$user'"
+						sudo -u "$user" sh -c "_tftp_untar '$tftp' '${tftp_root}/${mac}_${user}' '/home/${user}' '$timeout'"
+						if [ $? -ne 0 ];
+						then
+							ewarn "tftp-tar-unpack: failed for '$user'"
+						else
+							einfo "tftp-tar-unpack: success for '$user'"
+						fi
 					fi
 					;;
 				invert)
 					if _user_isin_tftp "$user";
 					then
-						_tftp_untar "$tftp" "${tftp_root}/${mac}_${user}" "/home/${user}" "$timeout"
-						[ $? -ne 0 ] && ewarn "tftp-tar-unpack: failed for '$user'"
+						sudo -u "$user" sh -c "_tftp_untar '$tftp' '${tftp_root}/${mac}_${user}' '/home/${user}' '$timeout'"
+						if [ $? -ne 0 ];
+						then
+							ewarn "tftp-tar-unpack: failed for '$user'"
+						else
+							ewarn "tftp-tar-unpack: success for '$user'"
+						fi
 					else
 						einfo "tftp-tar-unpack: skip '$user'"
 					fi
