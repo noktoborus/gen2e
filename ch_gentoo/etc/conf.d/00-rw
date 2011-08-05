@@ -35,7 +35,7 @@ _tftp_get_addr() {
 
 _tftp_get_root() {
 	# get tftp root directory from cmdline's init-rw-tftp-root
-	cat /proc/cmdline | sed 's/.*init-rw-tftp-root=\([a-zA-Z0-9.]*\).*\|.*/\1/'
+	cat /proc/cmdline | sed 's/.*init-rw-tftp-root=\([^ ]*\).*\|.*/\1/'
 }
 
 _tftp_get_timeout() {
