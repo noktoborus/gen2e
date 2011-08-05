@@ -27,55 +27,56 @@ start() {
 	touch "$provide_lock"
 	rc-update -u
 	# update users /home
-	tftp=$(_tftp_get_addr)
-	tftp_root=$(_tftp_get_root)
-	tftp_timeout=$(_tftp_get_timeout)
-	tftp_timeout=${tftp_timeout-"1"}
-	ebegin "tftp-tar-unpack: set up"
-	mode=$(_users_mode)
+	home_addr=$(_home_get_addr)
+	home_root=$(_home_get_root)
+	home_timeout=$(_home_get_timeout)
+	home_driver=$(_home_get_driver)
+	home_timeout=${home_timeout-"1"}
+	ebegin "home-tar-unpack: set up"
+	mode=$(_home_get_mode)
 	(
-		einfo "tftp-tar-unpack: use mode='${mode}', addr='${tftp}', root='${tftp_root}', timeout='${tftp_timeout}'"
-		if [ x"$mode" = x"off" -o -z "$tftp" ];
+		einfo "home-tar-unpack: use mode='${mode}', driver='${driver}', addr='${home_addr}', root='${home_root}', timeout='${home_timeout}'"
+		if [ x"$mode" = x"off" -o -z "$home" -o x"$driver" = x"none" ];
 		then
-			einfo "tftp-tar-unpack: disabled"
+			einfo "home-tar-unpack: disabled"
 			return 0
 		fi
-		mac=$(_tftp_get_hwid)
-		einfo "tftp-tar-unpack: use mac=${mac}"
+		mac=$(_home_get_hwid)
+		einfo "home-tar-unpack: use mac=${mac}"
 		if [ -z "$mac" ];
 		then
-			ewarn "tftp-tar-unpack: can't get mac from first eth* card"
+			ewarn "home-tar-unpack: can't get mac from first eth* card"
 			return 1
 		fi
 		for user in `cd /home; echo *`;
 		do
 			case "$mode" in
 				on)
-					if _user_isin_tftp "$user";
+					if _home_check_user "$user";
 					then
-						einfo "tftp-tar-unpack: skip '$user'"
+						einfo "home-tar-unpack: skip '$user'"
 					else
-						sudo -u "$user" sh -c "_tftp_untar '$tftp' '${tftp_root}/${mac}_${user}' '/home/${user}' '$timeout'"
+						sudo -u "$user" sh -c "_home_untar '$home_addr' '${home_root}/${mac}_${user}' '/home/${user}' '$timeout'"
 						if [ $? -ne 0 ];
 						then
-							ewarn "tftp-tar-unpack: failed for '$user'"
+							ewarn "home-tar-unpack: failed for '$user'"
 						else
-							einfo "tftp-tar-unpack: success for '$user'"
+							einfo "home-tar-unpack: success for '$user'"
 						fi
 					fi
 					;;
 				invert)
-					if _user_isin_tftp "$user";
+					if _home_check_user "$user";
 					then
-						sudo -u "$user" sh -c "_tftp_untar '$tftp' '${tftp_root}/${mac}_${user}' '/home/${user}' '$timeout'"
+						sudo -u "$user" sh -c "_home_untar '$home_addr' '${home_root}/${mac}_${user}' '/home/${user}' '$timeout'"
 						if [ $? -ne 0 ];
 						then
-							ewarn "tftp-tar-unpack: failed for '$user'"
+							ewarn "home-tar-unpack: failed for '$user'"
 						else
-							ewarn "tftp-tar-unpack: success for '$user'"
+							ewarn "home-tar-unpack: success for '$user'"
 						fi
 					else
-						einfo "tftp-tar-unpack: skip '$user'"
+						einfo "home-tar-unpack: skip '$user'"
 					fi
 					;;
 			esac

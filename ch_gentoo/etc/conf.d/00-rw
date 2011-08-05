@@ -10,53 +10,82 @@ _is_allow() {
 	return 1
 }
 
-_users_mode() {
-	# get mode for extract user directory from cmdline's init-rw-tftp-mode
+_home_get_mode() {
+	# get mode for extract user directory from cmdline's init-rw-home-mode
 	# modes in [off, on, invert]
-	## off	no use tftp to get users
-	## on	try get for all users (in /home/*), exclude seted in init-rw-tftp-u
-	## invert	try get for all setted users (in init-rw-tftp-u)
-	mode=$(cat /proc/cmdline | sed 's/.*init-rw-tftp-mode=\([a-z0-9.]*\).*\|.*/\1/')
+	## off	no use home to get users
+	## on	try get for all users (in /home/*), exclude seted in init-rw-home-u
+	## invert	try get for all setted users (in init-rw-home-u)
+	mode=$(cat /proc/cmdline | sed 's/.*init-rw-home-mode=\([a-z0-9.]*\).*\|.*/\1/')
 	[ -z "$mode" ] && mode="off"
 	echo $mode
 }
 
-_user_isin_tftp() {
-	# check user for set in init-rw-tftp-u
+_home_check_user() {
+	# check user for set in init-rw-home-u
 	user=$1
 	[ -z "$user" ] && return 1
-	cat /proc/cmdline | grep '\( \|^\)init-rw-tftp-u='"$user"'\( \|$\)' >/dev/null
+	cat /proc/cmdline | grep '\( \|^\)init-rw-home-u='"$user"'\( \|$\)' >/dev/null
 }
 
-_tftp_get_addr() {
-	# get tftp addr from init-rw-tftp cmdline
-	cat /proc/cmdline | sed 's/.*init-rw-tftp=\([a-z0-9.]*\).*\|.*/\1/'
+_home_get_addr() {
+	# get storage address from init-rw-home cmdline
+	cat /proc/cmdline | sed 's/.*init-rw-home=\([^ ]*\).*\|.*/\1/'
 }
 
-_tftp_get_root() {
-	# get tftp root directory from cmdline's init-rw-tftp-root
-	cat /proc/cmdline | sed 's/.*init-rw-tftp-root=\([^ ]*\).*\|.*/\1/'
+_home_get_root() {
+	# get home root directory from cmdline's init-rw-home-root
+	cat /proc/cmdline | sed 's/.*init-rw-home-root=\([^ ]*\).*\|.*/\1/'
 }
 
-_tftp_get_timeout() {
-	# get tftp timeout from cmdline's init-rw-tftp-timeout
-	cat /proc/cmdline | sed 's/.*init-rw-tftp-timeout=\([0-9]*\).*\|.*/\1/'
+_home_get_timeout() {
+	# get timeout for storage service from cmdline's init-rw-home-timeout
+	cat /proc/cmdline | sed 's/.*init-rw-home-timeout=\([0-9]*\).*\|.*/\1/'
 }
 
-_tftp_get_hwid() {
-	ip link | grep -A 1 'eth.*LOWER_UP' | sed -e 's/.*link\/ether \([^ ]*\).*\|.*/\1/' -e '/^$/d' -e 's/:/_/g' | head -n1
+_home_get_driver() {
+	driver=$(cat /proc/cmdline | sed 's/.*init-rw-home-driver=\([a-z0-9]*\).*\|.*/\1/')
+	[ -z "$driver" ] && driver="none"
+	echo "$driver"
 }
 
-_tftp_untar() {
-	# untar content from tftp address
+_home_get_hwid() {
+	driver=${1}
+	[ -z "$driver" ] && driver="none"
+	# get hwid for driver
+	case "$driver" in
+		tftp)
+			ip link | grep -A 1 'eth.*LOWER_UP' | sed -e 's/.*link\/ether \([^ ]*\).*\|.*/\1/' -e '/^$/d' -e 's/:/_/g' | head -n1
+			;;
+		none)
+			echo "z"
+			;;
+		*)
+			;;
+	esac
+}
+
+_home_untar() {
+	# untar content from home-storage address
 	host=$1
 	path=$2
 	outpath=$3
 	timeout=${4-"1"}
+	driver=$5
+	[ -z "$driver" ] && driver="none"
 	[ -z "$host" -o -z "$path" -o -z "$outpath" ] && return 1
 	cd "$outpath"
 	[ $? -ne 0 ] && return 1
-	( echo "mode binary"; echo "rexmt $timeout"; echo "timeout $timeout"; echo "get $path /dev/stderr" ) | ( tftp "$host" >/dev/null ) 2>&1 | sudo -u "$user" tar -x 2>/dev/null
+	case "$driver" in
+		tftp)
+			( echo "mode binary"; echo "rexmt $timeout"; echo "timeout $timeout"; echo "get $path /dev/stderr" ) | ( tftp "$host" >/dev/null ) 2>&1 | sudo -u "$user" tar -x 2>/dev/null
+			;;
+		none)
+			;;
+		*)
+			( exit 1 )
+			;;
+	esac
 	return $?
 }
 
