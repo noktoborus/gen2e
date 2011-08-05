@@ -2,12 +2,58 @@
 # vim: ft=sh ff=unix fenc=utf-8
 # file: 00-rw
 
-provide_lock="/tmp/_00-rw_allow_provide_now"
+provide_lock="/dev/.00-rw-init-depend-lock"
 
 _is_allow() {
 	mode=$(cat /proc/cmdline | sed 's/.*init-rw-root=\([a-zA-Z0-9.]*\).*\|.*/\1/')
 	[ x"$mode" = x"on" ] && return 0
 	return 1
+}
+
+_users_mode() {
+	# get mode for extract user directory from cmdline's init-rw-tftp-mode
+	# modes in [off, on, invert]
+	## off	no use tftp to get users
+	## on	try get for all users (in /home/*), exclude seted in init-rw-tftp-u
+	## invert	try get for all setted users (in init-rw-tftp-u)
+	mode=$(cat /proc/cmdline | sed 's/.*init-rw-tftp-mode=\([a-z0-9.]*\).*\|.*/\1/')
+	[ -z "$mode" ] && mode="off"
+	echo $mode
+}
+
+_user_isin_tftp() {
+	# check user for set in init-rw-tftp-u
+	user=$1
+	[ -z "$user" ] && return 1
+	cat /proc/cmdline | grep '\( \|^\)init-rw-tftp-u='"$user"'\( \|$\)' >/dev/null
+}
+
+_tftp_get_addr() {
+	# get tftp addr from init-rw-tftp cmdline
+	cat /proc/cmdline | sed 's/.*init-rw-tftp=\([a-z0-9.]*\).*\|.*/\1/'
+}
+
+_tftp_get_root() {
+	# get tftp root directory from cmdline's init-rw-tftp-root
+	cat /proc/cmdline | sed 's/.*init-rw-tftp-root=\([a-zA-Z0-9.]*\).*\|.*/\1/'
+}
+
+_tftp_get_timeout() {
+	# get tftp timeout from cmdline's init-rw-tftp-timeout
+	cat /proc/cmdline | sed 's/.*init-rw-tftp-timeout=\([0-9]*\).*\|.*/\1/'
+}
+
+_tftp_untar() {
+	# untar content from tftp address
+	host=$1
+	path=$2
+	outpath=$3
+	timeout=${4-"1"}
+	[ -z "$host" -o -z "$path" -o -z "$outpath" ] && return 1
+	cd "$outpath"
+	[ $? -ne 0 ] && return 1
+	( echo "mode binary"; echo "rexmt $timeout"; echo "timeout $timeout"; echo "get $path /dev/stderr" ) | ( tftp "$host" >/dev/null ) 2>&1 | tar -x 2>/dev/null
+	return $?
 }
 
 switch2tmpfs() {

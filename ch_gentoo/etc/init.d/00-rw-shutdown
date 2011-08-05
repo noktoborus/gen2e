@@ -5,12 +5,13 @@
 
 . "/etc/conf.d/00-rw"
 
-provide_lock=${provide_lock-"/tmp/provide_lock"}
+provide_lock=${provide_lock-"/dev/.00-rw-init-depend-lock"}
 
 depend() {
 	after net
 	need net
 	_is_allow || return 0
+	# prevent exception after set down network
 	[ -e "$provide_lock" ] || return 0
 	for net in `rc-update | sed -e 's/.*\(net\.[^ ]*\).*\|.*/\1/'`;
 	do
@@ -22,9 +23,55 @@ depend() {
 
 start() {
 	_is_allow || return 0
+	# set plug to net
 	touch "$provide_lock"
 	rc-update -u
-	rm -f "$provide_lock"
+	# update users /home
+	tftp=$(_tftp_get_addr)
+	tftp_root=$(_tftp_get_root)
+	tftp_timeout=$(_tftp_get_timeout)
+	tftp_timeout=${tftp_timeout-"1"}
+	ebegin "tftp-tar-unpack: set up"
+	mode=$(_users_mode)
+	(
+		einfo "tftp-tar-unpack: use mode='${mode}', addr='${tftp}', root='${tftp_root}', timeout='${tftp_timeout}'"
+		if [ x"$mode" = x"off" -o -z "$tftp" ];
+		then
+			einfo "tftp-tar-unpack: disabled"
+			return 0
+		fi
+		mac=$(ip link | grep -A 1 'eth.*LOWER_UP' | sed -e 's/.*link\/ether \([^ ]*\).*\|.*/\1/' -e '/^$/d' -e 's/:/_/g' | head -n1)
+		einfo "tftp-tar-unpack: use mac=${mac}"
+		if [ -z "$mac" ];
+		then
+			ewarn "tftp-tar-unpack: can't get mac from first eth* card"
+			return 1
+		fi
+		for user in `cd /home; echo *`;
+		do
+			case "$mode" in
+				on)
+					if _user_isin_tftp "$user";
+					then
+						einfo "tftp-tar-unpack: skip '$user'"
+					else
+						_tftp_untar "$tftp" "${tftp_root}/${mac}_${user}" "/home/${user}" "$timeout"
+						[ $? -ne 0 ] && ewarn "tftp-tar-unpack: failed for '$user'"
+					fi
+					;;
+				invert)
+					if _user_isin_tftp "$user";
+					then
+						_tftp_untar "$tftp" "${tftp_root}/${mac}_${user}" "/home/${user}" "$timeout"
+						[ $? -ne 0 ] && ewarn "tftp-tar-unpack: failed for '$user'"
+					else
+						einfo "tftp-tar-unpack: skip '$user'"
+					fi
+					;;
+			esac
+		done
+	)
+	eend $?
 	return 0
 }
 
