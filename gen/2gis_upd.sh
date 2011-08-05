@@ -38,7 +38,7 @@ Name=2GIS
 Comment=Browse the city
 GenericName=2GIS
 Exec=/bin/sh -c "cd '$di'; wine '$pa'"
-Icon=d1f7_grym.png
+Icon=/usr/share/icons/d1f7_grym.png
 Terminal=false
 StartupNotify=true
 Type=Application
@@ -48,7 +48,7 @@ Categories=Office;
 !
 
 mkdir -p "${TRG_R}/usr/share/icons"
-cat > "${TRG_R}/usr/share/icons/d1f7_grym.png" <<!
+base64 -d > "${TRG_R}/usr/share/icons/d1f7_grym.png" <<!
 QlpoOTFBWSZTWaZS1xwAAETfgAAwfvPwXz+rng6/79/+QAH91lnJsIiR6g/VHppAGNQeoaG1NqBk
 A0AZBqEZJjEU9onqD1NI2kPKGDQCMmQ0CIwkZJgKeTTKHo0T1AGJoaGgD1PUGmiUybQ1Jp6nqBpo
 NDRp5Q9NQMRoPU00KIShBR0heSdBGmocD/Ty2+2LFCIzVj9y55YpdbTuhu8xEvAN73xev0+qgpiM
