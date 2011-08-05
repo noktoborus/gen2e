@@ -40,18 +40,17 @@ _home_get_root() {
 
 _home_get_timeout() {
 	# get timeout for storage service from cmdline's init-rw-home-timeout
-	cat /proc/cmdline | sed 's/.*init-rw-home-timeout=\([0-9]*\).*\|.*/\1/'
+	timeout=$(cat /proc/cmdline | sed 's/.*init-rw-home-timeout=\([0-9]*\).*\|.*/\1/')
+	[ -z "$timeout" ] && timeout=1
+	echo "$timeout"
 }
 
 _home_get_driver() {
-	driver=$(cat /proc/cmdline | sed 's/.*init-rw-home-driver=\([a-z0-9]*\).*\|.*/\1/')
-	[ -z "$driver" ] && driver="none"
-	echo "$driver"
+	cat /proc/cmdline | sed 's/.*init-rw-home-driver=\([a-z0-9]*\).*\|.*/\1/'
 }
 
 _home_get_hwid() {
 	driver=${1}
-	[ -z "$driver" ] && driver="none"
 	# get hwid for driver
 	case "$driver" in
 		tftp)
@@ -70,15 +69,16 @@ _home_untar() {
 	host=$1
 	path=$2
 	outpath=$3
-	timeout=${4-"1"}
+	timeout=$4
 	driver=$5
+	[ -z "$timeout" ] && timeout=1
 	[ -z "$driver" ] && driver="none"
 	[ -z "$host" -o -z "$path" -o -z "$outpath" ] && return 1
 	cd "$outpath"
 	[ $? -ne 0 ] && return 1
 	case "$driver" in
 		tftp)
-			( echo "mode binary"; echo "rexmt $timeout"; echo "timeout $timeout"; echo "get $path /dev/stderr" ) | ( tftp "$host" >/dev/null ) 2>&1 | sudo -u "$user" tar -x 2>/dev/null
+			( echo "mode binary"; echo "rexmt $timeout"; echo "timeout $timeout"; echo "get $path /dev/stderr" ) | ( tftp "$host" >/dev/null ) 2>&1 | tar -x 2>/dev/null
 			;;
 		none)
 			;;

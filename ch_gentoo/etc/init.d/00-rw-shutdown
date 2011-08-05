@@ -3,7 +3,9 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
-. "/etc/conf.d/00-rw"
+LIBRWINIT="/etc/conf.d/00-rw"
+
+. "$LIBRWINIT"
 
 provide_lock=${provide_lock-"/dev/.00-rw-init-depend-lock"}
 
@@ -27,22 +29,22 @@ start() {
 	touch "$provide_lock"
 	rc-update -u
 	# update users /home
-	home_addr=$(_home_get_addr)
-	home_root=$(_home_get_root)
-	home_timeout=$(_home_get_timeout)
-	home_driver=$(_home_get_driver)
-	home_timeout=${home_timeout-"1"}
 	ebegin "home-tar-unpack: set up"
-	mode=$(_home_get_mode)
 	(
-		einfo "home-tar-unpack: use mode='${mode}', driver='${driver}', addr='${home_addr}', root='${home_root}', timeout='${home_timeout}'"
-		if [ x"$mode" = x"off" -o -z "$home" -o x"$driver" = x"none" ];
+		home_addr=$(_home_get_addr)
+		home_root=$(_home_get_root)
+		home_timeout=$(_home_get_timeout)
+		home_driver=$(_home_get_driver)
+		home_timeout=${home_timeout-"1"}
+		mode=$(_home_get_mode)
+		einfo "home-tar-unpack: use mode='${mode}', driver='${home_driver}', addr='${home_addr}', root='${home_root}', timeout='${home_timeout}'"
+		if [ x"$mode" = x"off" -o -z "$home_addr" -o x"$home_driver" = x"none" ];
 		then
 			einfo "home-tar-unpack: disabled"
 			return 0
 		fi
-		mac=$(_home_get_hwid)
-		einfo "home-tar-unpack: use mac=${mac}"
+		mac=$(_home_get_hwid "$home_driver")
+		einfo "home-tar-unpack: use hwid=${mac}"
 		if [ -z "$mac" ];
 		then
 			ewarn "home-tar-unpack: can't get mac from first eth* card"
@@ -56,7 +58,7 @@ start() {
 					then
 						einfo "home-tar-unpack: skip '$user'"
 					else
-						sudo -u "$user" sh -c "_home_untar '$home_addr' '${home_root}/${mac}_${user}' '/home/${user}' '$timeout'"
+						sudo -u "$user" sh -c ". '$LIBRWINIT'; _home_untar '$home_addr' '${home_root}/${mac}_${user}' '/home/${user}' '$home_timeout' '$home_driver'"
 						if [ $? -ne 0 ];
 						then
 							ewarn "home-tar-unpack: failed for '$user'"
@@ -68,7 +70,7 @@ start() {
 				invert)
 					if _home_check_user "$user";
 					then
-						sudo -u "$user" sh -c "_home_untar '$home_addr' '${home_root}/${mac}_${user}' '/home/${user}' '$timeout'"
+						sudo -u "$user" sh -c ". '$LIBRWINIT'; _home_untar '$home_addr' '${home_root}/${mac}_${user}' '/home/${user}' '$home_timeout' '$home_driver'"
 						if [ $? -ne 0 ];
 						then
 							ewarn "home-tar-unpack: failed for '$user'"
