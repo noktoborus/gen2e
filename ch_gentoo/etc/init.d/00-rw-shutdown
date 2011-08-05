@@ -40,7 +40,7 @@ start() {
 			einfo "tftp-tar-unpack: disabled"
 			return 0
 		fi
-		mac=$(ip link | grep -A 1 'eth.*LOWER_UP' | sed -e 's/.*link\/ether \([^ ]*\).*\|.*/\1/' -e '/^$/d' -e 's/:/_/g' | head -n1)
+		mac=$(_tftp_get_hwid)
 		einfo "tftp-tar-unpack: use mac=${mac}"
 		if [ -z "$mac" ];
 		then

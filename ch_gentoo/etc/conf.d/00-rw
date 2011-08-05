@@ -43,6 +43,10 @@ _tftp_get_timeout() {
 	cat /proc/cmdline | sed 's/.*init-rw-tftp-timeout=\([0-9]*\).*\|.*/\1/'
 }
 
+_tftp_get_hwid() {
+	ip link | grep -A 1 'eth.*LOWER_UP' | sed -e 's/.*link\/ether \([^ ]*\).*\|.*/\1/' -e '/^$/d' -e 's/:/_/g' | head -n1
+}
+
 _tftp_untar() {
 	# untar content from tftp address
 	host=$1
