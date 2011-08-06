@@ -19,6 +19,7 @@ start() {
 	( mount -t tmpfs -o mode=1777,size=32M none /var/tmp || exit 0 )
 	( mount -t tmpfs -o size=1M none /var/run || exit 0 )
 	( mount -t tmpfs -o size=1M none /var/lock || exit 0 )
+	( mount -t tmpfs -o size=1M none /media	|| exit 0 )
 	( mount -t tmpfs -o size=32M none /var/log || exit 0 )
 	( mount -t tmpfs -o size=10M none /root || exit 0 )
 	mdev -s
@@ -35,7 +36,7 @@ start() {
 	find /home -maxdepth 1 -type d ! -path '/home' | while read upath;
 	do
 		user=$(basename "$upath")
-		switch2tmpfs "$upath" "$home_sto" "${user}:${user}"
+		switch2tmpfs "$upath" "$home_sto" "${user}:${user}" "0700"
 	done
 	return 0
 }

@@ -1,0 +1,7 @@
+[Local mount]
+Identity=unix-group:users
+Action=org.freedesktop.udisks.filesystem-mount
+ResultAny=yes
+ResultInactive=no
+ResultActive=yes
+

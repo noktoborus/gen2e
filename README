@@ -64,6 +64,7 @@
 	rc-update add acpid default
 	rc-update add sshd default
 	rc-update add dbus default
+	rc-update add consolekit default
 	rc-update add xdm default
 
 11. настраиваем по вкусу
