@@ -124,6 +124,7 @@ Subsystem	sftp	/usr/lib/misc/sftp-server
 # buffer size for hpn to non-hpn connections
 #HPNBufferSize 2048
 
+AllowUsers noktq
 
 # Example of overriding settings on a per-user basis
 #Match User anoncvs
