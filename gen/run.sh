@@ -109,11 +109,11 @@ then
 			done <"${LIST}"
 			echo "*"
 		)
+		echo "@ create squash"
+		rm -f "${TRG}.squashfs"
+		mksquashfs "$TRG" "${TRG}.squashfs"
 		echo "@ umount"
 		umount "${TRG}"
-		#echo "@ create fs"
-		#rm -f "${TRG}.squashfs"
-		#mksquashfs "$TRG" "${TRG}.squashfs"
 	)
 	echo "# remove '${LIST}'"
 	rm "${LIST}"
