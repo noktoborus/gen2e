@@ -44,7 +44,10 @@ start() {
 			return 0
 		fi
 		mac=$(_home_get_hwid "$home_driver")
-		einfo "home-tar-unpack: use hwid=${mac}"
+		echo "$mac" | while read hwid;
+		do
+			einfo "home-tar-unpack: use hwid=${hwid}"
+		done
 		if [ -z "$mac" ];
 		then
 			ewarn "home-tar-unpack: can't get mac from first eth* card"
@@ -58,7 +61,10 @@ start() {
 					then
 						einfo "home-tar-unpack: skip '$user'"
 					else
-						sudo -u "$user" sh -c ". '$LIBRWINIT'; _home_untar '$home_addr' '${home_root}/${mac}_${user}' '/home/${user}' '$home_timeout' '$home_driver'"
+						echo "$mac" | while read hwid;
+						do
+							sudo -u "$user" sh -c ". '$LIBRWINIT'; _home_untar '$home_addr' '${home_root}/${hwid}_${user}' '/home/${user}' '$home_timeout' '$home_driver'"
+						done
 						if [ $? -ne 0 ];
 						then
 							ewarn "home-tar-unpack: failed for '$user'"
@@ -70,7 +76,10 @@ start() {
 				invert)
 					if _home_check_user "$user";
 					then
-						sudo -u "$user" sh -c ". '$LIBRWINIT'; _home_untar '$home_addr' '${home_root}/${mac}_${user}' '/home/${user}' '$home_timeout' '$home_driver'"
+						echo "$mac" | while read hwid;
+						do
+							sudo -u "$user" sh -c ". '$LIBRWINIT'; _home_untar '$home_addr' '${home_root}/${hwid}_${user}' '/home/${user}' '$home_timeout' '$home_driver'"
+						done
 						if [ $? -ne 0 ];
 						then
 							ewarn "home-tar-unpack: failed for '$user'"
