@@ -103,7 +103,7 @@ then
 					(
 						SD=$(dirname "${line}")
 						[ ! -e "${TRG}/${SD}" ] && mkdir -p "${TRG}/${SD}"
-						echo -n $(cp -av "${line}" "${TRG}/${SD}")
+						echo -n $(cp -av "${line}" "${TRG}/${SD}" | sed -e "s/\`\([^' ]*\).*\|.*/\1/")
 					)
 				fi
 			done <"${LIST}"
