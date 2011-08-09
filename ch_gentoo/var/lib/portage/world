@@ -28,6 +28,7 @@ sys-power/cpufrequtils
 sys-process/vixie-cron
 www-client/firefox
 www-plugins/adobe-flash
+x11-apps/setxkbmap
 x11-apps/xrandr
 x11-base/xorg-server
 x11-misc/redshift
