@@ -30,6 +30,7 @@ www-client/firefox
 www-plugins/adobe-flash
 x11-apps/xrandr
 x11-base/xorg-server
+x11-misc/redshift
 x11-plugins/pidgin-sipe
 x11-terms/sakura
 x11-themes/gnome-icon-theme
@@ -37,3 +38,6 @@ x11-themes/gtk-engines
 x11-themes/slim-themes
 xfce-base/xfce4-meta
 xfce-extra/thunar-volman
+xfce-extra/xfce4-mixer
+xfce-extra/xfce4-notifyd
+xfce-extra/xfce4-xkb-plugin
