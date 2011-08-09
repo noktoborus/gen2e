@@ -61,11 +61,13 @@ start() {
 					then
 						einfo "home-tar-unpack: skip '$user'"
 					else
+						R=1
 						echo "$mac" | while read hwid;
 						do
 							sudo -u "$user" sh -c ". '$LIBRWINIT'; _home_untar '$home_addr' '${home_root}/${hwid}_${user}' '/home/${user}' '$home_timeout' '$home_driver'"
+							[ $? -eq 0 ] && R=0
 						done
-						if [ $? -ne 0 ];
+						if [ $R -ne 0 ];
 						then
 							ewarn "home-tar-unpack: failed for '$user'"
 						else
@@ -76,11 +78,13 @@ start() {
 				invert)
 					if _home_check_user "$user";
 					then
+						R=1
 						echo "$mac" | while read hwid;
 						do
 							sudo -u "$user" sh -c ". '$LIBRWINIT'; _home_untar '$home_addr' '${home_root}/${hwid}_${user}' '/home/${user}' '$home_timeout' '$home_driver'"
+							[ $? -eq 0 ] && R=0
 						done
-						if [ $? -ne 0 ];
+						if [ $R -ne 0 ];
 						then
 							ewarn "home-tar-unpack: failed for '$user'"
 						else
