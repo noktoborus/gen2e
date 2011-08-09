@@ -54,7 +54,7 @@ _home_get_hwid() {
 	# get hwid for driver
 	case "$driver" in
 		tftp)
-			for eif in $(ip link show | grep -e '.*<.*LOWER_UP.*>.*' | sed 's/[0-9]*: \([a-Z0-9]*\).*\|\*/\1/');
+			for eif in $(ip link show | grep -e '.*<.*LOWER_UP.*>.*' | sed 's/[0-9]*: \([a-z0-9]*\).*\|\*/\1/');
 			do
 				[ -z "$eif" ] && continue
 				# link/ether
