@@ -4,3 +4,7 @@ export LANG=ru_RU.UTF-8
 export LC_ALL=ru_RU.UTF-8
 export XSESSION="Xfce4"
 
+gtk-redshift -l 43:131
+setxkbmap -layout 'us,ru' -option 'grp:alt_shift_toggle'
+setxkbmap -option 'terminate:ctrl_alt_bksp'
+
