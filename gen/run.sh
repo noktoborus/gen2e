@@ -140,7 +140,25 @@ then
 		cp -a /dev/zero "${TRG}/dev"
 		cp -a /dev/console "${TRG}/dev"
 		echo "# copy programs"
-		cp "${SRC}/bin/busybox" "${TRG}/bin/"
+		echo > "${TRG}/etc/nsswitch.conf"
+		echo "passwd: files" >> "${TRG}/etc/nsswitch.conf"
+		echo "shadow: files" >> "${TRG}/etc/nsswitch.conf"
+		echo "group: files" >> "${TRG}/etc/nsswitch.conf"
+		echo "hosts: files dns" >> "${TRG}/etc/nsswitch.conf"
+		echo "networks: files dns" >> "${TRG}/etc/nsswitch.conf"
+		echo "services: files db" >> "${TRG}/etc/nsswitch.conf"
+		echo "protocols: files db" >> "${TRG}/etc/nsswitch.conf"
+		echo "automount: files" >> "${TRG}/etc/nsswitch.conf"
+		echo "aliases: files" >> "${TRG}/etc/nsswitch.conf"
+		cp "${SRC}/etc/services" "${TRG}/etc"
+		cp "${SRC}/etc/protocols" "${TRG}/etc"
+		cp "${SRC}/usr/bin/dig" "${TRG}/bin" # TODO: why nslookup from busybox not work?!
+		#find /lib/ -name "libnss_*" -exec cp -a {} "${TRG}/lib/" \;
+		find /lib/ -name "libnss_files*" -exec cp -a {} "${TRG}/lib/" \;
+		find /lib/ -name "libnss_db*" -exec cp -a {} "${TRG}/lib/" \;
+		find /lib/ -name "libnss_dns*" -exec cp -a {} "${TRG}/lib/" \;
+		find /lib/ -name "libresolv*" -exec cp -a {} "${TRG}/lib/" \;
+		cp "${SRC}/bin/busybox" "${TRG}/bin"
 		cp "${SRC}/usr/sbin/nbd-client" "${TRG}/bin"
 		cp "${CDI}/udhcpc-script.sh" "${TRG}/sbin"
 		cp "${CDI}/init.initramfs.sh" "${TRG}/init"

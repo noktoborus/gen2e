@@ -60,6 +60,23 @@ get_bd_type ()
 	cat /proc/cmdline | sed -e 's/.*rzbd_type=\([^ ]*\).*/\1/' -e '/^$/d'
 }
 
+resolv_host ()
+{
+	ADDR=
+	TYPE=${2-"A"}
+	ADDR=$(echo "$1" | sed -e 's/^\([^\/:]*\).*\|.*/\1/' -e '/^$/d')
+	[ -z "$ADDR" ] && return 1
+	ADDR=$(dig "$ADDR" | sed -e 's/.*IN[[:space:]]*'"$TYPE"'[[:space:]]*\(.*\)\|.*/\1/' -e '/^$/d' | head -n 1)
+	if [ -z "$ADDR" ];
+	then
+		echo "$1"
+	else
+		echo -n $ADDR
+		echo "$1" | sed -e 's/^[^\/:]*\(.*\)\|.*/\1/'
+	fi
+	return 0
+}
+
 _is_debug ()
 {
 	echo " `cat /proc/cmdline` " | grep ' kzdebug '
@@ -114,6 +131,7 @@ then
 		nbd)
 			echo "*** get nbd root"
 			NBD_ROOT=$(echo "$RADDR" | split_bd_addr lv)
+			NBD_ROOT=$(resolv_host "$NBD_ROOT")
 			if [ -z "$NBD_ROOT" ];
 			then
 				echo "!! unknown nbd root addr"
@@ -130,6 +148,7 @@ then
 		local)
 			LOCAL_ADDR=$(echo "$RADDR" | split_bd_addr lv)
 			REMOTE_ADDR=$(echo "$RADDR" | split_bd_addr rv)
+			REMOTE_ADDR=$(resolv_host "$REMOTE_ADDR")
 			echo "*** use '$LOCAL_ADDR' as storage, '$REMOTE_ADDR' as remote"
 			ROOT_FROM="/mnt/newroot"
 			if [ -z "$LOCAL_ADDR" -o -z "$REMOTE_ADDR" ];
@@ -151,10 +170,12 @@ then
 		echo "*** use root as storage"
 		(
 			cd /mnt
+			RADDR=$(get_bd_addr)
 			REMOTE_ADDR=$(echo "$RADDR" | split_bd_addr rv)
-			CUR=$(wget -O /dev/stdout "http://$REMOTE_ADDR/current")
+			REMOTE_ADDR=$(resolv_host "$REMOTE_ADDR")
 			R=0
-			if [ ! -e "$CUR" ];
+			CUR=$(wget -O /dev/stdout "http://$REMOTE_ADDR/current")
+			if [ ! -f "$CUR" ];
 			then
 				wget "http://$REMOTE_ADDR/$CUR"
 				R=$?

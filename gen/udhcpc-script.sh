@@ -11,7 +11,11 @@ case "$1" in
 		;;
 	bound)
 		ip addr add "$ip/$mask" dev "$interface"
-		touch /etc/resolv.conf
+		if [ ! -z "$router" ];
+		then
+			ip route add default via "$router"
+		fi
+		echo > /etc/resolv.conf
 		if [ $? -eq 0 ];
 		then
 			[ ! -z "domain" ] && echo "domain $domain" >> /etc/resolv.conf
