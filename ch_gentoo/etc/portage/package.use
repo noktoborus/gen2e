@@ -5,3 +5,6 @@ net-misc/curl -threads
 sys-fs/udev extras
 sys-fs/aufs2 kernel-patch
 dev-libs/DirectFB sdl
+net-im/psi plugins extras jingle iconsets whiteboarding
+net-im/qutim icq irc mrim
+sys-apps/lshw -gtk

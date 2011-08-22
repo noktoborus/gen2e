@@ -12,7 +12,8 @@ mail-client/thunderbird
 media-sound/qmmp
 net-fs/fusesmb
 net-ftp/tftp-hpa
-net-im/pidgin
+net-im/psi
+net-im/qutim
 net-misc/dhcpcd
 net-misc/ntp
 net-misc/openssh
@@ -20,6 +21,7 @@ net-misc/proxychains
 net-misc/tigervnc
 net-voip/twinkle
 sys-apps/iproute2
+sys-apps/lshw
 sys-block/nbd
 sys-fs/aufs2
 sys-kernel/hardened-sources
@@ -32,7 +34,6 @@ x11-apps/setxkbmap
 x11-apps/xrandr
 x11-base/xorg-server
 x11-misc/redshift
-x11-plugins/pidgin-sipe
 x11-terms/sakura
 x11-themes/gnome-icon-theme
 x11-themes/gtk-engines

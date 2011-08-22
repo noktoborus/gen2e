@@ -10,11 +10,17 @@ app-text/libwpg ~*
 dev-util/mdds ~*
 dev-libs/hyphen ~*
 app-text/libwpd ~*
-media-gfx/graphite2 ~*
 xfce-base/thunar ~*
 dev-python/thunarx-python ~*
 app-emulation/wine ~*
 sys-fs/aufs2 ~*
-x11-plugins/pidgin-sipe ~*
 xfce-extra/xfce4-xkb-plugin ~*
 x11-misc/redshift ~*
+app-text/hunspell ~*
+dev-libs/nspr ~*
+media-libs/vigra ~*
+media-libs/harfbuzz ~*
+dev-libs/dbus-glib ~*
+net-misc/curl ~*
+sys-apps/findutils ~*
+
