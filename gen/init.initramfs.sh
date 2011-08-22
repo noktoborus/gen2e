@@ -3,6 +3,7 @@
 # file: init.initramfs.sh
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
+ROOT_FROM="/mnt"
 
 pre_mount ()
 {
@@ -37,73 +38,147 @@ get_ifs ()
 	ip link show | sed -e 's/[0-9]*: \([^ :]*\).*\|.*/\1/' -e '/^$/d'
 }
 
+get_bd_addr ()
+{
+	cat /proc/cmdline | sed -e 's/.*rzbd_addr=\([^ ]*\).*\|.*/\1/' -e '/^$/d'
+}
+
+split_bd_addr ()
+{
+	case "$1" in
+		lv)
+			sed -e 's/\(.*\):.*\|.*/\1/' -e '/^$/d'
+			;;
+		rv)
+			sed -e 's/.*:\(.*\)\|.*/\1/' -e '/^$/d'
+			;;
+	esac
+}
+
+get_bd_type ()
+{
+	cat /proc/cmdline | sed -e 's/.*rzbd_type=\([^ ]*\).*/\1/' -e '/^$/d'
+}
+
 _is_debug ()
 {
 	echo " `cat /proc/cmdline` " | grep ' kzdebug '
 }
 
-echo "*** mount base"
-touch /etc/mtab
-pre_mount M
-
-_is_debug && give_shell
-
-echo "*** get root path"
-NBD_ROOT=$(cat /proc/cmdline | sed 's/.*kznbd=\([a-zA-Z0-9.]*\).*\|.*/\1/')
-[ -z "$NBD_ROOT" ] && give_shell
-NBD_PORT=$(echo "$NBD_ROOT" | sed 's/.*:\([0-9]*\)\|.*/\1/')
-
-if [ ! -z "$NBD_PORT" ];
+if [ -z "$INITRD_NORUN" ];
 then
-	NBD_ROOT=$(echo "$NBD_ROOT" | sed 's/\(.*\):[0-9]*\|.*/\1/')
-else
-	NBD_PORT="1023"
-fi
-echo "# pointer at '$NBD_ROOT', port '$NBD_PORT'"
+	echo "*** mount base"
+	touch /etc/mtab
+	pre_mount M
 
-echo "*** generate /dev"
-mdev -s
+	_is_debug && give_shell
 
-echo "*** modprobe aufs"
-insmod /lib/modules/`uname -r`/misc/aufs.ko
-[ $? -ne 0 ] && give_shell
+	echo "*** generate /dev"
+	mdev -s
 
-echo "*** configure network"
-get_ifs | while read eif;
-do
-	[ -z "$eif" ] && continue
-	echo "** configure $eif"
-	get_if_cfg "$eif" | while read cfg;
+	echo "*** modprobe aufs"
+	insmod /lib/modules/`uname -r`/misc/aufs.ko
+	[ $? -ne 0 ] && give_shell
+
+	echo "*** configure network"
+	get_ifs | while read eif;
 	do
-		[ -z "$cfg" ] && continue
-		echo "**	$cfg"
-		if [ "$cfg" = "dhcp" ];
-		then
-			udhcpc -s /sbin/udhcpc-script.sh -i eth0
-		else
-			ip link set up dev "$eif"
-			ip address add $cfg dev "$eif"
-		fi
+		[ -z "$eif" ] && continue
+		echo "** configure $eif"
+		get_if_cfg "$eif" | while read cfg;
+		do
+			[ -z "$cfg" ] && continue
+			echo "**	$cfg"
+			if [ "$cfg" = "dhcp" ];
+			then
+				udhcpc -s /sbin/udhcpc-script.sh -i eth0
+			else
+				ip link set up dev "$eif"
+				ip address add $cfg dev "$eif"
+			fi
+		done
 	done
-done
-[ $? -ne 0 ] && give_shell
+	[ $? -ne 0 ] && give_shell
 
-echo "*** configure nbd"
-nbd-client "$NBD_ROOT" "$NBD_PORT" /dev/nbd0 -p
-[ $? -ne 0 ] && give_shell
+	RADDR=$(get_bd_addr)
+	if [ -z "$RADDR" ];
+	then
+		echo "*** root address is null"
+		give_shell
+	else
+		echo "*** root address is '$RADDR'"
+	fi
 
-echo "*** mount nbd"
-mount /dev/nbd0 /mnt
-[ $? -ne 0 ] && give_shell
+	BD_TYPE=$(get_bd_type)
+	case "$BD_TYPE" in
+		nbd)
+			echo "*** get nbd root"
+			NBD_ROOT=$(echo "$RADDR" | split_bd_addr lv)
+			if [ -z "$NBD_ROOT" ];
+			then
+				echo "!! unknown nbd root addr"
+				give_shell
+			fi
+			NBD_PORT=$(echo "$RADDR" | split_bd_addr rv)
+			echo "# pointer at '$NBD_ROOT', port '$NBD_PORT'"
+			echo "*** configure nbd"
+			nbd-client "$NBD_ROOT" "$NBD_PORT" /dev/nbd0 -p
+			[ $? -ne 0 ] && give_shell
+			echo >> /etc/fstab
+			echo "/dev/nbd0 /mnt auto defaults 0 0" >> /etc/fstab
+			;;
+		local)
+			LOCAL_ADDR=$(echo "$RADDR" | split_bd_addr lv)
+			REMOTE_ADDR=$(echo "$RADDR" | split_bd_addr rv)
+			echo "*** use '$LOCAL_ADDR' as storage, '$REMOTE_ADDR' as remote"
+			ROOT_FROM="/mnt/newroot"
+			if [ -z "$LOCAL_ADDR" -o -z "$REMOTE_ADDR" ];
+			then
+				echo "!! use null as address?"
+				give_shell
+			else
+				echo >> /etc/fstab
+				echo "$LOCAL_ADDR /mnt auto defaults 0 0" >> /etc/fstab
+			fi
+	esac
 
-echo "*** killall"
-killall -9 udhcpc
+	echo "*** mount root"
+	mount /mnt
+	[ $? -ne 0 ] && give_shell
 
-echo "*** umount base"
-pre_mount U
+	if [ x"$BD_TYPE" = x"local" ];
+	then
+		echo "*** use root as storage"
+		(
+			cd /mnt
+			REMOTE_ADDR=$(echo "$RADDR" | split_bd_addr rv)
+			CUR=$(wget -O /dev/stdout "http://$REMOTE_ADDR/current")
+			R=0
+			if [ ! -e "$CUR" ];
+			then
+				wget "http://$REMOTE_ADDR/$CUR"
+				R=$?
+			fi
+			if [ $R -eq 0 ];
+			then
+				mkdir -p "$ROOT_FROM"
+				mount "$CUR" "$ROOT_FROM"
+				R=$?
+			fi
+			return $R
+		) || give_shell
+	fi
 
-echo "*** starting new root"
-exec switch_root /mnt /sbin/init
+	echo "*** killall"
+	killall -9 udhcpc
 
-echo "@@@ FAIL"
-exec sh
+	echo "*** umount base"
+	pre_mount U
+
+	echo "*** starting new root"
+	exec switch_root "$ROOT_FROM" /sbin/init
+
+	echo "@@@ FAIL, exec sh"
+	exec sh
+fi
+
