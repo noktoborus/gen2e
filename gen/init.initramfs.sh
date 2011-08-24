@@ -3,7 +3,12 @@
 # file: init.initramfs.sh
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
-ROOT_FROM="/mnt"
+
+# possible variables in /proc/cmdline:
+# kzdebug		:use debug mode
+# eif_<ifname>	:set up interface with name <ifname>, allow values: dhcp, ipaddr/CID
+# kroot_addr	:address on nbd server, in format: address:port
+# kroot_addr_lo	:address of local device, for storage, format: address (/dev/sda1, UUID=..., etc)
 
 pre_mount ()
 {
@@ -38,12 +43,14 @@ get_ifs ()
 	ip link show | sed -e 's/[0-9]*: \([^ :]*\).*\|.*/\1/' -e '/^$/d'
 }
 
-get_bd_addr ()
+get_addr ()
 {
-	cat /proc/cmdline | sed -e 's/.*rzbd_addr=\([^ ]*\).*\|.*/\1/' -e '/^$/d'
+	ID="$1"
+	[ -z "$ID" ] && return 1
+	cat /proc/cmdline | sed -e 's/ /\n/g' | sed -e 's/.*'"$ID"'=\([^ ]*\).*\|.*/\1/' -e '/^$/d'
 }
 
-split_bd_addr ()
+split_addr ()
 {
 	case "$1" in
 		lv)
@@ -53,11 +60,6 @@ split_bd_addr ()
 			sed -e 's/.*:\(.*\)\|.*/\1/' -e '/^$/d'
 			;;
 	esac
-}
-
-get_bd_type ()
-{
-	cat /proc/cmdline | sed -e 's/.*rzbd_type=\([^ ]*\).*/\1/' -e '/^$/d'
 }
 
 resolv_host ()
@@ -117,79 +119,103 @@ then
 	done
 	[ $? -ne 0 ] && give_shell
 
-	RADDR=$(get_bd_addr)
-	if [ -z "$RADDR" ];
+	# fix fstab
+	echo >> /etc/fstab
+
+	LSKEY=""
+	LADDR=$(get_addr kroot_addr_lo)
+	RSKEY=""
+	RADDR=$(get_addr kroot_addr)
+	RPORT=0
+	echo "*** remote '$RADDR', local '$LADDR'"
+	# local storage
+	if [ ! -z "$LADDR" ];
 	then
-		echo "*** root address is null"
-		give_shell
+		"*** mount local storage"
+		echo "$LADDR /mnt auto defaults,rw,errors=continue 0 0" >> /etc/fstab
+		mount "$LADDR" || give_shell
+		[ -r "/mnt/skey" ] && LSKEY=$(cat /mnt/skey)
 	else
-		echo "*** root address is '$RADDR'"
+		echo "*** local storage not defined, skipped"
 	fi
-
-	BD_TYPE=$(get_bd_type)
-	case "$BD_TYPE" in
-		nbd)
-			echo "*** get nbd root"
-			NBD_ROOT=$(echo "$RADDR" | split_bd_addr lv)
-			NBD_ROOT=$(resolv_host "$NBD_ROOT")
-			if [ -z "$NBD_ROOT" ];
-			then
-				echo "!! unknown nbd root addr"
-				give_shell
-			fi
-			NBD_PORT=$(echo "$RADDR" | split_bd_addr rv)
-			echo "# pointer at '$NBD_ROOT', port '$NBD_PORT'"
-			echo "*** configure nbd"
-			nbd-client "$NBD_ROOT" "$NBD_PORT" /dev/nbd0 -p
-			[ $? -ne 0 ] && give_shell
-			echo >> /etc/fstab
-			echo "/dev/nbd0 /mnt auto defaults 0 0" >> /etc/fstab
-			;;
-		local)
-			LOCAL_ADDR=$(echo "$RADDR" | split_bd_addr lv)
-			REMOTE_ADDR=$(echo "$RADDR" | split_bd_addr rv)
-			REMOTE_ADDR=$(resolv_host "$REMOTE_ADDR")
-			echo "*** use '$LOCAL_ADDR' as storage, '$REMOTE_ADDR' as remote"
-			ROOT_FROM="/mnt/newroot"
-			if [ -z "$LOCAL_ADDR" -o -z "$REMOTE_ADDR" ];
-			then
-				echo "!! use null as address?"
-				give_shell
-			else
-				echo >> /etc/fstab
-				echo "$LOCAL_ADDR /mnt auto defaults 0 0" >> /etc/fstab
-			fi
-	esac
-
-	echo "*** mount root"
-	mount /mnt
-	[ $? -ne 0 ] && give_shell
-
-	if [ x"$BD_TYPE" = x"local" ];
+	# remote storage
+	if [ ! -z "$RADDR" ];
 	then
-		echo "*** use root as storage"
-		(
-			cd /mnt
-			RADDR=$(get_bd_addr)
-			REMOTE_ADDR=$(echo "$RADDR" | split_bd_addr rv)
-			REMOTE_ADDR=$(resolv_host "$REMOTE_ADDR")
-			R=0
-			CUR=$(wget -O /dev/stdout "http://$REMOTE_ADDR/current")
-			if [ ! -f "$CUR" ];
+		RPORT=$(echo "$RADDR" | split_addr rv)
+		[ -z "$RPORT" ] && RPORT=1023
+		RADDR=$(echo "$RADDR" | split_addr lv)
+		RADDR=$(resolv_host "$RADDR")
+		echo "*** check remote storage '$RADDR'"
+		RSKEY=$(wget -O - "http://$RADDR/root_index")
+		RSZ=$(echo "$RSKEY" | split_addr rv)
+		RSKEY=$(echo "$RSKEY" | split_addr lv)
+		if [ -z "$RSZ" ];
+		then
+			echo "!! remote image has zero length (as defined in root_index)"
+			give_shell
+		else
+			echo "*** setup nbd ($RADDR:$RPORT)"
+			nbd-client "$RADDR" "$RPORT" /dev/nbd0 -p
+			[ $? -ne 0 ] && give_shell
+			# test sizes with local image
+			if [ ! -z "$LADDR" ];
 			then
-				wget "http://$REMOTE_ADDR/$CUR"
-				R=$?
+				echo "*** check skeys L:'$LSKEY', R:'$RSKEY'"
+				if [ x"$LSKEY" != x"$RSKEY" ];
+				then
+					echo "*** check size"
+					LSZ=$(stat -c%s /mnt/image)
+					if [ -z "$LSZ" -o $LSZ -lt $RSZ ];
+					then
+						LSZ=$(expr 1024 \* 1024) # get 1M
+						LSZ=$(expr $RSZ / $LSZ) # get number of blocks
+						echo "*** grow image to ${LSZ}M"
+						dd if=/dev/zero of=/mnt/image bs=1M seek=$LSZ count=1
+						[ $? -ne 0 ] && give_shell
+					fi
+				fi
+			else
+				echo "*** local not defined, skip sync"
 			fi
-			if [ $R -eq 0 ];
-			then
-				mkdir -p "$ROOT_FROM"
-				mount "$CUR" "$ROOT_FROM"
-				R=$?
-			fi
-			return $R
-		) || give_shell
+		fi
+	else
+		echo "*** remote not defined, skipped"
 	fi
-
+	# attach local image
+	if [ ! -z "$LADDR" ];
+	then
+		echo "*** setup local image '/mnt/image'"
+		losetup /dev/loop1 /mnt/image
+		[ $? -eq 0 ] && give_shell
+	fi
+	# setup raid1
+	if [ ! -z "$RADDR" ];
+	then
+		echo "*** setup raid1 with remote as master"
+		mdadm --create /dev/md1 --level=1 --force --raid-devices=1 /dev/nbd0
+		[ $? -ne 0 ] && give_shell
+		if [ ! -z "LADDR" ];
+		then
+			echo "*** attach to raid local image"
+			(
+				mdadm --manage /dev/md1 add /dev/loop1 &&\
+				mdadm --grow /dev/md1 --raid-devices=2
+			) || give_shell
+		fi
+	elif [ ! -z "$LADDR" ];
+	then
+		echo "*** setup raid1 with local as master"
+		mdadm --create /dev/md1 --level=1 --force --raid-devices=1 /dev/loop0
+		[ $? -ne 0 ] && give_shell
+	fi
+	# end prepare
+	(
+		echo "*** mount /dev/md1 as newroot"
+		mkdir -p /mnt/_root
+		echo "/dev/md1 /mnt/_root auto defaults,rw,errors=continue 0 0" >> /etc/fstab
+		mount /dev/md1
+	) || give_shell
+	# switch
 	echo "*** killall"
 	killall -9 udhcpc
 
