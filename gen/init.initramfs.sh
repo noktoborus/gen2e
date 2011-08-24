@@ -205,7 +205,7 @@ then
 	if [ ! -z "$LADDR" ];
 	then
 		echo "*** setup local image '/mnt/image'"
-		losetup /dev/loop1 /mnt/image
+		/bin/losetup /dev/loop1 /mnt/image
 		[ $? -eq 0 ] && give_shell
 	fi
 	# setup raid1
