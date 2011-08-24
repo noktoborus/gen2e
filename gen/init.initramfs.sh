@@ -223,7 +223,7 @@ then
 		then
 			echo "*** attach to raid local image"
 			(
-				mdadm --manage /dev/md1 add /dev/loop1 &&\
+				mdadm --manage /dev/md1 --add /dev/loop1 &&\
 				mdadm --grow /dev/md1 --raid-devices=2
 			) || give_shell
 		fi
