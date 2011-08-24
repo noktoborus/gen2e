@@ -174,7 +174,7 @@ then
 				give_shell
 			else
 				echo "*** setup nbd ($RADDR:$RPORT)"
-				nbd-client "$RADDR" "$RPORT" /dev/nbd0 -p
+				/bin/nbd-client "$RADDR" "$RPORT" /dev/nbd0 -p
 				[ $? -ne 0 ] && give_shell
 				# test sizes with local image
 				if [ ! -z "$LADDR" ];
