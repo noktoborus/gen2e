@@ -180,10 +180,16 @@ then
 				if [ ! -z "$LADDR" ];
 				then
 					echo "*** check skeys L:'$LSKEY', R:'$RSKEY'"
-					if [ x"$LSKEY" != x"$RSKEY" ];
+					if [ x"$LSKEY" != x"$RSKEY" -o ! -r "/mnt/image" ];
 					then
-						echo "*** check size"
-						LSZ=$(stat -c%s /mnt/image)
+						LSZ=0
+						if [ -r "/mnt/image" ];
+						then
+							echo "*** check size"
+							LSZ=$(stat -c%s /mnt/image)
+						else
+							echo "*** local image file not exists, try creat"
+						fi
 						if [ -z "$LSZ" -o $LSZ -lt $RSZ ];
 						then
 							LSZ=$(expr 1024 \* 1024) # get 1M
@@ -205,8 +211,7 @@ then
 	if [ ! -z "$LADDR" ];
 	then
 		echo "*** setup local image '/mnt/image'"
-		/bin/losetup /dev/loop1 /mnt/image
-		[ $? -eq 0 ] && give_shell
+		/bin/losetup /dev/loop1 /mnt/image || give_shell
 	fi
 	# setup raid1
 	if [ ! -z "$RADDR" ];
