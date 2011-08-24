@@ -2,6 +2,9 @@
 # vim: ft=sh ff=unix fenc=utf-8
 # file: gen.sh
 
+
+LODEV="/dev/loop7"
+MDDEV="/dev/md7"
 BLKSZ=4096
 SRC=${1-"./ch_gentoo"}
 if [ ! -d "${SRC}" ];
@@ -58,12 +61,18 @@ then
 		rm -rf "$TRG"
 		mkdir -p "$TRG"
 		echo "@ create image"
-		dd if=/dev/zero "of=${TRG}.fs" "seek=${S}" "bs=${BLKSZ}" count=1
+		dd if=/dev/zero "of=${TRG}.fs" "seek=${S}" "bs=${BLKSZ}" count=64
+		echo "@ setup loop '$LODEV'"
+		losetup "$LODEV" "${TRG}.fs"
+		echo "@ setup md '$MDDEV'"
+		echo "y" | mdadm --create "$MDDEV" --level=1 --force --metadata=0 --raid-devices=1 "$LODEV"
 		#mkfs -t btrfs "${TRG}.fs"
-		echo "y" | mkfs -t ext2 "${TRG}.fs"
-		tune2fs -c 0 -i 0 "${TRG}.fs"
+		echo "@ setup fs 'ext2'"
+		echo "y" | mkfs -t ext2 "${MDDEV}"
+		tune2fs -c 0 -i 0 "${MDDEV}"
+		echo "@ mount to '${TRG}'"
 		#mount -o loop,compress=zlib "${TRG}.fs" "${TRG}"
-		mount -o loop "${TRG}.fs" "${TRG}"
+		mount "$MDDEV" "$TRG"
 		echo "@ update dirs"
 		(
 			cd "${TRG}"
@@ -109,11 +118,15 @@ then
 			done <"${LIST}"
 			echo "*"
 		)
-		echo "@ create squash"
-		rm -f "${TRG}.squashfs"
-		mksquashfs "$TRG" "${TRG}.squashfs"
+		#echo "@ create squash"
+		#rm -f "${TRG}.squashfs"
+		#mksquashfs "$TRG" "${TRG}.squashfs"
 		echo "@ umount"
 		umount "${TRG}"
+		echo "@ stop md '$MDDEV'"
+		mdadm --stop "$MDDEV"
+		echo "@ unloop"
+		losetup -d "$LODEV"
 	)
 	echo "# remove '${LIST}'"
 	rm "${LIST}"
@@ -161,6 +174,7 @@ then
 		cp "${SRC}/bin/busybox" "${TRG}/bin"
 		cp "${SRC}/sbin/losetup" "${TRG}/bin"
 		cp "${SRC}/sbin/mdadm" "${TRG}/bin"
+		cp "${SRC}/sbin/blkid" "${TRG}/bin"
 		cp "${SRC}/usr/sbin/nbd-client" "${TRG}/bin"
 		cp "${CDI}/udhcpc-script.sh" "${TRG}/sbin"
 		cp "${CDI}/init.initramfs.sh" "${TRG}/init"
