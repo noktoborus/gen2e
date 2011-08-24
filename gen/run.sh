@@ -159,6 +159,8 @@ then
 		find /lib/ -name "libnss_dns*" -exec cp -a {} "${TRG}/lib/" \;
 		find /lib/ -name "libresolv*" -exec cp -a {} "${TRG}/lib/" \;
 		cp "${SRC}/bin/busybox" "${TRG}/bin"
+		cp "${SRC}/sbin/losetup" "${TRG}/bin"
+		cp "${SRC}/sbin/mdadm" "${TRG}/bin"
 		cp "${SRC}/usr/sbin/nbd-client" "${TRG}/bin"
 		cp "${CDI}/udhcpc-script.sh" "${TRG}/sbin"
 		cp "${CDI}/init.initramfs.sh" "${TRG}/init"
