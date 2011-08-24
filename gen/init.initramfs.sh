@@ -137,15 +137,7 @@ then
 		if [ -r "/mnt/image" ];
 		then
 			echo "*** get local serial key"
-			(
-				mkdir -p /mnt/_mnt_tmp
-				[ $? -eq 0 ] && mount -o loop,ro -t auto /mnt/image /mnt/_mnt_tmp
-				if [ $? -eq 0 ];
-				then
-					LSKEY=$(cat /mnt/_mnt_tmp/serial)
-					umount -f /mnt/image
-				fi
-			)
+			LSKEY=$(/bin/blkid /mnt/image | sed -e 's/.*UUID=["]\{0,1\}\([^ "]*\).*/\1/' -e '/^$/d')
 			[ -z "$LSKEY" ] && echo "*** local serial not present"
 		else
 			echo "*** image not present, skip lskey get"
@@ -160,50 +152,41 @@ then
 		[ -z "$RPORT" ] && RPORT=1023
 		RADDR=$(echo "$RADDR" | split_addr lv)
 		RADDR=$(resolv_host "$RADDR")
-		if [ -z "$LADDR" ];
+		echo "*** setup nbd ($RADDR:$RPORT)"
+		RSZ=$(/bin/nbd-client "$RADDR" "$RPORT" /dev/nbd0 -p 2>&1)
+		echo "$RZS"
+		RSZ=$(echo "$RSZ" | sed -e 's/.*sz=\([0-9]*\)[[:space:]]bytes.*\|.*/\1/' -e '/^$/d')
+		if [ -z "$RSZ" ];
 		then
-			echo "*** local storage not preset, skip remote check"
-		else
-			echo "*** check remote storage '$RADDR'"
-			RSKEY=$(wget -O - "http://$RADDR/root_index")
-			RSZ=$(echo "$RSKEY" | split_addr rv)
-			RSKEY=$(echo "$RSKEY" | split_addr lv)
-			if [ -z "$RSZ" ];
+			echo "!!! nbd-client return no size"
+			give_shell
+		fi
+		# test sizes with local image
+		if [ ! -z "$LADDR" ];
+		then
+			echo "*** check skeys L:'$LSKEY', R:'$RSKEY'"
+			if [ x"$LSKEY" != x"$RSKEY" -o ! -r "/mnt/image" ];
 			then
-				echo "!! remote image has zero length (as defined in root_index)"
-				give_shell
-			else
-				echo "*** setup nbd ($RADDR:$RPORT)"
-				/bin/nbd-client "$RADDR" "$RPORT" /dev/nbd0 -p
-				[ $? -ne 0 ] && give_shell
-				# test sizes with local image
-				if [ ! -z "$LADDR" ];
+				LSZ=0
+				if [ -r "/mnt/image" ];
 				then
-					echo "*** check skeys L:'$LSKEY', R:'$RSKEY'"
-					if [ x"$LSKEY" != x"$RSKEY" -o ! -r "/mnt/image" ];
-					then
-						LSZ=0
-						if [ -r "/mnt/image" ];
-						then
-							echo "*** check size"
-							LSZ=$(stat -c%s /mnt/image)
-						else
-							echo "*** local image file not exists, try creat"
-						fi
-						if [ -z "$LSZ" -o $LSZ -lt $RSZ ];
-						then
-							LSZ=$(expr 1024 \* 1024) # get 1M
-							LSZ=$(expr $RSZ / $LSZ) # get number of blocks
-							echo "*** grow image to ${LSZ}M"
-							dd if=/dev/zero of=/mnt/image bs=1M seek=$LSZ count=1
-							[ $? -ne 0 ] && give_shell
-						fi
-					fi
+					echo "*** check size"
+					LSZ=$(stat -c%s /mnt/image)
 				else
-					echo "*** local not defined, skip sync"
-				fi # compare serials
-			fi # test remote serial
-		fi # check local exists
+					echo "*** local image file not exists, try creat"
+				fi
+				if [ -z "$LSZ" -o $LSZ -lt $RSZ ];
+				then
+					LSZ=$(expr 1024 \* 1024) # get 1M
+					LSZ=$(expr $RSZ / $LSZ) # get number of blocks
+					echo "*** grow image to ${LSZ}M"
+					dd if=/dev/zero of=/mnt/image bs=1M seek=$LSZ count=1
+					[ $? -ne 0 ] && give_shell
+				fi
+			fi
+		else
+			echo "*** local not defined, skip sync"
+		fi # compare serials
 	else
 		echo "*** remote not defined, skipped"
 	fi
@@ -217,7 +200,7 @@ then
 	if [ ! -z "$RADDR" ];
 	then
 		echo "*** setup raid1 with remote as master"
-		mdadm --create /dev/md1 --level=1 --force --raid-devices=1 /dev/nbd0
+		echo y | mdadm --create /dev/md1 --run --level=1 --force --raid-devices=1 /dev/nbd0
 		[ $? -ne 0 ] && give_shell
 		if [ ! -z "LADDR" ];
 		then
@@ -230,14 +213,14 @@ then
 	elif [ ! -z "$LADDR" ];
 	then
 		echo "*** setup raid1 with local as master"
-		mdadm --create /dev/md1 --level=1 --force --raid-devices=1 /dev/loop0
+		echo y | mdadm --create /dev/md1 --run --level=1 --force --raid-devices=1 /dev/loop0
 		[ $? -ne 0 ] && give_shell
 	fi
 	# end prepare
 	(
 		echo "*** mount /dev/md1 as newroot"
 		mkdir -p /mnt/_root
-		echo "/dev/md1 /mnt/_root auto defaults,ro,errors=continue 0 0" >> /etc/fstab
+		echo "/dev/md1 /mnt/_root auto defaults,ro 0 0" >> /etc/fstab
 		mount /dev/md1
 	) || give_shell
 	# switch
