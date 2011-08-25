@@ -193,7 +193,6 @@ then
 		if [ -z "$RSZ" ];
 		then
 			echo "!!! nbd-client return no size (may be nbd-server can't work)"
-			echo "*** use local-only image"
 			RADDR=""
 			unset RADDR
 		else
@@ -245,7 +244,7 @@ then
 		fi
 	elif [ ! -z "$LADDR" ];
 	then
-		echo "*** setup raid1 with local as master"
+		echo "*** setup raid1 with local-only image"
 		echo y | mdadm --build /dev/md1 --run --level=1 --force --raid-devices=1 /dev/loop1
 		[ $? -ne 0 ] && give_shell
 	fi
