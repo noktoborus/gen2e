@@ -61,11 +61,11 @@ then
 		rm -rf "$TRG"
 		mkdir -p "$TRG"
 		echo "@ create image"
-		dd if=/dev/zero "of=${TRG}.fs" "seek=${S}" "bs=${BLKSZ}" count=64
+		dd if=/dev/zero "of=${TRG}.fs" "seek=${S}" "bs=${BLKSZ}" count=1
 		echo "@ setup loop '$LODEV'"
 		losetup "$LODEV" "${TRG}.fs"
 		echo "@ setup md '$MDDEV'"
-		echo "y" | mdadm --create "$MDDEV" --level=1 --force --metadata=0 --raid-devices=1 "$LODEV"
+		echo "y" | mdadm --build "$MDDEV" --level=1 --force --raid-devices=1 "$LODEV"
 		#mkfs -t btrfs "${TRG}.fs"
 		echo "@ setup fs 'ext2'"
 		echo "y" | mkfs -t ext2 "${MDDEV}"
