@@ -201,7 +201,6 @@ then
 			then
 				RSKEY=$(/bin/blkid /dev/nbd0 | sed -e 's/.*UUID=["]\{0,1\}\([^ "]*\).*/\1/' -e '/^$/d')
 				echo "*** check skeys L:'$LSKEY', R:'$RSKEY'"
-				give_shell
 				if [ x"$LSKEY" != x"$RSKEY" -o ! -r "/mnt/image" ];
 				then
 					echo "*** grow local image to ${RSZ}"
