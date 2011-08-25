@@ -3,6 +3,9 @@
 # file: init.initramfs.sh
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
+BD_FLAG_STR="UNCOMPLETED"
+BD_FLAG_LEN=$(echo -n "$BD_FLAG_STR" | wc -c)
+
 
 # possible variables in /proc/cmdline:
 # kzdebug		:use debug mode
@@ -27,6 +30,7 @@ pre_mount ()
 give_shell ()
 {
 	echo "## start shell"
+	export INITRD_NORUN=1
 	sh
 	return 1
 }
@@ -77,6 +81,26 @@ resolv_host ()
 		echo "$1" | sed -e 's/^[^\/:]*\(.*\)\|.*/\1/'
 	fi
 	return 0
+}
+
+get_last_bytes ()
+{
+	IN="$1"
+	INSZ="$2"
+	BCOUNT="$3"
+	if [ -z "$IN" -o -z "$INSZ" -o -z "$BCOUNT" ];
+	then
+		echo "args not completed: IN='$IN', INSZ='$INSZ', BCOUNT='$BCOUNT'" >&2
+		return 1
+	fi
+	if [ $BCOUNT -gt $INSZ ];
+	then
+		echo "BCOUNT is greater then INSZ ('$BCOUNT' > '$INSZ')" >&2
+		return 2
+	fi
+	T=$(expr $INSZ - $BCOUNT)
+	echo "T+$T, I:$INSZ, $BCOUNT" >&2
+	dd "if=$IN" bs=1 "skip=$T" "count=$BCOUNT"
 }
 
 _is_debug ()
@@ -134,11 +158,22 @@ then
 		echo "*** mount local storage"
 		echo "$LADDR /mnt auto defaults,rw,errors=continue 0 0" >> /etc/fstab
 		mount "$LADDR" || give_shell
+		if [ -e "/mnt/swap" ];
+		then
+			echo "*** swapon /mnt/swap"
+			swapon /mnt/swap
+		fi
 		if [ -r "/mnt/image" ];
 		then
 			echo "*** get local serial key"
 			LSKEY=$(/bin/blkid /mnt/image | sed -e 's/.*UUID=["]\{0,1\}\([^ "]*\).*/\1/' -e '/^$/d')
 			[ -z "$LSKEY" ] && echo "*** local serial not present"
+			CHECKFL=$(get_last_bytes /mnt/image "`stat -c%s /mnt/image`" "$BD_FLAG_LEN")
+			if [ "$CHECKFL" = "$BD_FLAG_STR" ];
+			then
+				echo "*** flag setted, set image to fail state"
+				LSKEY=""
+			fi
 		else
 			echo "*** image not present, skip lskey get"
 		fi
@@ -159,34 +194,33 @@ then
 		if [ -z "$RSZ" ];
 		then
 			echo "!!! nbd-client return no size"
-			give_shell
-		fi
-		# test sizes with local image
-		if [ ! -z "$LADDR" ];
-		then
-			echo "*** check skeys L:'$LSKEY', R:'$RSKEY'"
-			if [ x"$LSKEY" != x"$RSKEY" -o ! -r "/mnt/image" ];
-			then
-				LSZ=0
-				if [ -r "/mnt/image" ];
-				then
-					echo "*** check size"
-					LSZ=$(stat -c%s /mnt/image)
-				else
-					echo "*** local image file not exists, try creat"
-				fi
-				if [ -z "$LSZ" -o $LSZ -lt $RSZ ];
-				then
-					LSZ=$(expr 1024 \* 1024) # get 1M
-					LSZ=$(expr $RSZ / $LSZ) # get number of blocks
-					echo "*** grow image to ${LSZ}M"
-					dd if=/dev/zero of=/mnt/image bs=1M seek=$LSZ count=1
-					[ $? -ne 0 ] && give_shell
-				fi
-			fi
+			echo "*** use local-only image"
+			RADDR=""
+			unset RADDR
 		else
-			echo "*** local not defined, skip sync"
-		fi # compare serials
+			# test sizes with local image
+			if [ ! -z "$LADDR" ];
+			then
+				RSKEY=$(/bin/blkid /dev/nbd0 | sed -e 's/.*UUID=["]\{0,1\}\([^ "]*\).*/\1/' -e '/^$/d')
+				echo "*** check skeys L:'$LSKEY', R:'$RSKEY'"
+				give_shell
+				if [ x"$LSKEY" != x"$RSKEY" -o ! -r "/mnt/image" ];
+				then
+					echo "*** grow local image to ${RSZ}"
+					rm -f /mnt/image >/dev/null 2>&1
+					dd if=/dev/zero of=/mnt/image bs=1 "seek=$RSZ" count=0
+					RSZ=$(expr $RSZ - $BD_FLAG_LEN)
+					echo -n "$BD_FLAG_STR" | dd of=/mnt/image bs=1 "seek=$RSZ"
+					[ $? -ne 0 ] && give_shell
+				else
+					echo "*** local image is ready, close remote"
+					RADDR=""
+					/bin/nbd-client -d /dev/nbd0
+				fi
+			else
+				echo "*** local not present, skip sync"
+			fi
+		fi # test nbd setup
 	else
 		echo "*** remote not defined, skipped"
 	fi
@@ -200,7 +234,7 @@ then
 	if [ ! -z "$RADDR" ];
 	then
 		echo "*** setup raid1 with remote as master"
-		echo y | mdadm --create /dev/md1 --run --level=1 --force --raid-devices=1 /dev/nbd0
+		echo y | mdadm --build /dev/md1 --run --level=1 --force --raid-devices=1 /dev/nbd0
 		[ $? -ne 0 ] && give_shell
 		if [ ! -z "LADDR" ];
 		then
@@ -213,14 +247,14 @@ then
 	elif [ ! -z "$LADDR" ];
 	then
 		echo "*** setup raid1 with local as master"
-		echo y | mdadm --create /dev/md1 --run --level=1 --force --raid-devices=1 /dev/loop0
+		echo y | mdadm --build /dev/md1 --run --level=1 --force --raid-devices=1 /dev/loop0
 		[ $? -ne 0 ] && give_shell
 	fi
 	# end prepare
 	(
 		echo "*** mount /dev/md1 as newroot"
 		mkdir -p /mnt/_root
-		echo "/dev/md1 /mnt/_root auto defaults,ro 0 0" >> /etc/fstab
+		echo "/dev/md1 /mnt/_root auto defaults,noatime,nodiratime,ro 0 0" >> /etc/fstab
 		mount /dev/md1
 	) || give_shell
 	# switch
@@ -231,7 +265,7 @@ then
 	pre_mount U
 
 	echo "*** starting new root"
-	exec switch_root "$ROOT_FROM" /sbin/init
+	exec switch_root "/mnt/_root" /sbin/init
 
 	echo "@@@ FAIL, exec sh"
 	exec sh
