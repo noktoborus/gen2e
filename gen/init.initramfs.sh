@@ -188,12 +188,11 @@ then
 		RADDR=$(echo "$RADDR" | split_addr lv)
 		RADDR=$(resolv_host "$RADDR")
 		echo "*** setup nbd ($RADDR:$RPORT)"
-		RSZ=$(/bin/nbd-client "$RADDR" "$RPORT" /dev/nbd0 -p 2>&1)
-		echo "$RZS"
+		RSZ=$(/bin/nbd-client "$RADDR" "$RPORT" /dev/nbd0 2>&1)
 		RSZ=$(echo "$RSZ" | sed -e 's/.*sz=\([0-9]*\)[[:space:]]bytes.*\|.*/\1/' -e '/^$/d')
 		if [ -z "$RSZ" ];
 		then
-			echo "!!! nbd-client return no size"
+			echo "!!! nbd-client return no size (may be nbd-server can't work)"
 			echo "*** use local-only image"
 			RADDR=""
 			unset RADDR
