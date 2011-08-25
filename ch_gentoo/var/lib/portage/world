@@ -25,6 +25,7 @@ sys-apps/iproute2
 sys-apps/lshw
 sys-block/nbd
 sys-fs/aufs2
+sys-fs/mdadm
 sys-kernel/hardened-sources
 sys-power/acpid
 sys-power/cpufrequtils

@@ -247,7 +247,7 @@ then
 	elif [ ! -z "$LADDR" ];
 	then
 		echo "*** setup raid1 with local as master"
-		echo y | mdadm --build /dev/md1 --run --level=1 --force --raid-devices=1 /dev/loop0
+		echo y | mdadm --build /dev/md1 --run --level=1 --force --raid-devices=1 /dev/loop1
 		[ $? -ne 0 ] && give_shell
 	fi
 	# end prepare
