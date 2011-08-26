@@ -194,7 +194,6 @@ then
 		then
 			echo "!!! nbd-client return no size (may be nbd-server can't work)"
 			RADDR=""
-			unset RADDR
 		else
 			# test sizes with local image
 			if [ ! -z "$LADDR" ];
@@ -233,7 +232,7 @@ then
 		echo "*** setup raid1 with remote as master"
 		echo y | mdadm --build /dev/md1 --run --level=1 --force --raid-devices=1 /dev/nbd0
 		[ $? -ne 0 ] && give_shell
-		if [ ! -z "LADDR" ];
+		if [ ! -z "$LADDR" ];
 		then
 			echo "*** attach to raid local image"
 			(
