@@ -28,6 +28,7 @@ start() {
 	switch2tmpfs "/var/lib"
 	switch2tmpfs "/var/db"
 	switch2tmpfs "/var/cache"
+	switch2tmpfs "/var/spool"
 	switch2tmpfs "/usr"
 	# /home aufs mount
 	home_sto="/root/kzhome"
