@@ -157,7 +157,7 @@ then
 	then
 		echo "*** mount local storage"
 		echo "$LADDR /mnt auto defaults,rw,errors=continue 0 0" >> /etc/fstab
-		mount "$LADDR" || give_shell
+		mount "$LADDR"
 		if [ -e "/mnt/swap" ];
 		then
 			echo "*** swapon /mnt/swap"

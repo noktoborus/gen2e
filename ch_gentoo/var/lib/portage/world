@@ -1,5 +1,6 @@
 app-admin/conky
 app-admin/sudo
+app-editors/gedit
 app-editors/vim
 app-emulation/wine
 app-misc/tmux
