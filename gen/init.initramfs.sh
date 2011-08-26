@@ -158,25 +158,31 @@ then
 		echo "*** mount local storage"
 		echo "$LADDR /mnt auto defaults,rw,errors=continue 0 0" >> /etc/fstab
 		mount "$LADDR"
-		if [ -e "/mnt/swap" ];
+		if [ $? -ne 0 ];
 		then
-			echo "*** swapon /mnt/swap"
-			swapon /mnt/swap
-		fi
-		if [ -r "/mnt/image" ];
-		then
-			echo "*** get local serial key"
-			LSKEY=$(/bin/blkid /mnt/image | sed -e 's/.*UUID=["]\{0,1\}\([^ "]*\).*/\1/' -e '/^$/d')
-			[ -z "$LSKEY" ] && echo "*** local serial not present"
-			CHECKFL=$(get_last_bytes /mnt/image "`stat -c%s /mnt/image`" "$BD_FLAG_LEN")
-			if [ "$CHECKFL" = "$BD_FLAG_STR" ];
-			then
-				echo "*** flag setted, set image to fail state"
-				LSKEY=""
-			fi
+			echo "!! local storage mount fail"
+			LADDR=""
 		else
-			echo "*** image not present, skip lskey get"
-		fi
+			if [ -e "/mnt/swap" ];
+			then
+				echo "*** swapon /mnt/swap"
+				swapon /mnt/swap
+			fi
+			if [ -r "/mnt/image" ];
+			then
+				echo "*** get local serial key"
+				LSKEY=$(/bin/blkid /mnt/image | sed -e 's/.*UUID=["]\{0,1\}\([^ "]*\).*/\1/' -e '/^$/d')
+				[ -z "$LSKEY" ] && echo "*** local serial not present"
+				CHECKFL=$(get_last_bytes /mnt/image "`stat -c%s /mnt/image`" "$BD_FLAG_LEN")
+				if [ "$CHECKFL" = "$BD_FLAG_STR" ];
+				then
+					echo "*** flag setted, set image to fail state"
+					LSKEY=""
+				fi
+			else
+				echo "*** image not present, skip lskey get"
+			fi
+		fi # mount try
 	else
 		echo "*** local storage not defined, skipped"
 	fi
