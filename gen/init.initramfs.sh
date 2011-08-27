@@ -208,12 +208,25 @@ then
 				echo "*** check skeys L:'$LSKEY', R:'$RSKEY'"
 				if [ x"$LSKEY" != x"$RSKEY" -o ! -r "/mnt/image" ];
 				then
-					echo "*** grow local image to ${RSZ}"
-					rm -f /mnt/image >/dev/null 2>&1
-					dd if=/dev/zero of=/mnt/image bs=1 "seek=$RSZ" count=0
-					RSZ=$(expr $RSZ - $BD_FLAG_LEN)
-					echo -n "$BD_FLAG_STR" | dd of=/mnt/image bs=1 "seek=$RSZ"
-					[ $? -ne 0 ] && give_shell
+					echo "*** check space for image"
+					LSZ=$(rm -f /mnt/image >/dev/null 2>&1)
+					if [ -z "$LSZ" ];
+					then
+						echo "!! can't gen free space info for /mnt, fail local"
+						LADDR=""
+					else
+						if [ $LZS -lt $RSZ ];
+						then
+							echo "!! space on local not enough for store image ('$LSZ' less than '$RSZ')"
+						else
+							df | grep '/mnt$' | awk '{print $4}'
+							echo "*** grow local image to ${RSZ}"
+							dd if=/dev/zero of=/mnt/image bs=1 "seek=$RSZ" count=0
+							RSZ=$(expr $RSZ - $BD_FLAG_LEN)
+							echo -n "$BD_FLAG_STR" | dd of=/mnt/image bs=1 "seek=$RSZ"
+							[ $? -ne 0 ] && give_shell
+						fi
+					fi
 				else
 					echo "*** local image is ready, close remote"
 					RADDR=""
