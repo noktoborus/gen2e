@@ -1,6 +1,6 @@
 [Local mount]
 Identity=unix-group:users
-Action=org.freedesktop.udisks.filesystem-mount
+Action=org.freedesktop.udisks.filesystem-mount;org.freedesktop.udisks.filesystem-unmount-others;org.freedesktop.udisks.drive-eject;org.freedesktop.udisks.drive-detach
 ResultAny=yes
 ResultInactive=no
 ResultActive=yes
