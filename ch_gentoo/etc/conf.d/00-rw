@@ -21,6 +21,11 @@ _home_get_mode() {
 	echo $mode
 }
 
+_home_check_rsyncd() {
+	#cat /proc/cmdline | sed 's/.*init-rw-rsyncd=\([a-z]\).*\|.*/\1/'
+	grep 'init-rw-rsyncd=on' /proc/cmdline
+}
+
 _home_check_user() {
 	# check user for set in init-rw-home-u
 	user=$1

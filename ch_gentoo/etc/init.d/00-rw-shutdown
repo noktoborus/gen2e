@@ -100,6 +100,8 @@ start() {
 					;;
 			esac
 		done
+		# run rsync_
+		_home_check_rsyncd && rsync --daemon --pidfile /var/run/rsyncd.pid
 	)
 	eend $?
 	return 0
