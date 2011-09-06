@@ -2,7 +2,6 @@ net-misc/proxychains ~*
 sys-fs/udev ~*
 sys-kernel/hardened-sources ~*
 net-im/psi ~*
-app-office/libreoffice ~*
 app-text/libwps ~*
 app-text/mythes ~*
 sci-mathematics/lpsolve ~*
