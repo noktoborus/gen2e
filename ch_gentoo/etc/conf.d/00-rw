@@ -51,6 +51,7 @@ _home_get_driver() {
 
 _home_get_hwid() {
 	driver=${1}
+	opts=$(echo "$*" | tr ' ' '\n')
 	# get hwid for driver
 	case "$driver" in
 		tftp)
@@ -71,6 +72,9 @@ _home_get_hwid() {
 		*)
 			;;
 	esac
+	# hostname
+	echo $opts | grep '-hostname' 2>/dev/null
+	[ $? -ne 0 ] && hostname -s
 }
 
 _home_untar() {

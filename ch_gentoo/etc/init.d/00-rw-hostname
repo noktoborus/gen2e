@@ -1,0 +1,40 @@
+#!/sbin/runscript
+# Copyright 1999-2011 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Header: $
+
+LIBRWINT="/etc/conf.d/00-rw"
+
+. "$LIBRWINIT"
+
+depend() {
+	before hostname
+}
+
+start() {
+	_is_allow || return 0
+	ebegin "etc-tar-unpack: setup"
+	R=0
+	home_addr=$(_home_get_addr)
+	home_root=$(_home_get_root)
+	home_driver=$(_home_get_driver)
+	home_timeout=$(_home_get_timeout)
+	home_timeout=${home_timeout-"1"}
+	mode=$(_home_get_mode)
+	einfo "home-tar-unpack: use mode='${mode}', driver='${home_driver}', addr='${home_addr}', root='${home_root}', timeout='${home_timeout}'"
+	if [ "$home_addr" -a x"$home_driver" != x"none" ];
+	then
+		mac=$(_home_get_hwid "$home_driver" -hostname)
+		R=1
+		echo "$mac" | while read hwid;
+		do
+			_home_untar "$home_addr" "${home_root}${hwid}__etc" "/etc/" "$home_timeout" "$home_driver"
+			[ $? -eq 0 ] && R=0
+		done
+	else
+		einfo "init-rw-home ('$home_addr') or init-rw-home is 'none' ('$home_root'), /etc not be rewrited"
+	fi
+	eend $R
+	return 0
+}
+
