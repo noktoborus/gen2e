@@ -33,17 +33,19 @@ start() {
 	(
 		home_addr=$(_home_get_addr)
 		home_root=$(_home_get_root)
-		home_timeout=$(_home_get_timeout)
 		home_driver=$(_home_get_driver)
+		home_timeout=$(_home_get_timeout)
 		home_timeout=${home_timeout-"1"}
 		mode=$(_home_get_mode)
 		einfo "home-tar-unpack: use mode='${mode}', driver='${home_driver}', addr='${home_addr}', root='${home_root}', timeout='${home_timeout}'"
 		if [ x"$mode" = x"off" -o -z "$home_addr" -o x"$home_driver" = x"none" ];
 		then
 			einfo "home-tar-unpack: disabled"
+			eend 0
 			return 0
 		fi
 		mac=$(_home_get_hwid "$home_driver")
+		# print hwids
 		echo "$mac" | while read hwid;
 		do
 			einfo "home-tar-unpack: use hwid=${hwid}"
@@ -51,8 +53,10 @@ start() {
 		if [ -z "$mac" ];
 		then
 			ewarn "home-tar-unpack: can't get mac from first eth* card"
+			eend 1
 			return 1
 		fi
+		# get users' files
 		for user in `cd /home; echo *`;
 		do
 			case "$mode" in
