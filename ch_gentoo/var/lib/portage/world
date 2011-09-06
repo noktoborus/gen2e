@@ -23,6 +23,7 @@ dev-util/strace
 dev-vcs/git
 mail-client/thunderbird
 media-sound/qmmp
+net-analyzer/netcat
 net-fs/fusesmb
 net-ftp/tftp-hpa
 net-im/psi

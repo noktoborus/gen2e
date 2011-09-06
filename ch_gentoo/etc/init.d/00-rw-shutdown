@@ -101,7 +101,13 @@ start() {
 			esac
 		done
 		# run rsync_
-		_home_check_rsyncd && rsync --daemon --pidfile /var/run/rsyncd.pid
+		_home_check_rsyncd
+		if [ $? -eq 0 ];
+		then
+			rsync --daemon --pidfile /var/run/rsyncd.pid
+			home_addr=$(_home_get_addr)
+			[ ! -z "$home_addr" ] && ( nohup sh -c 'while true; do sleep 5; echo "host:`hostname`" | nc --send-only -u "$home_addr" 9091 2>/dev/null; done;' >/dev/null 2>&1 & )
+		fi
 	)
 	eend $?
 	return 0
