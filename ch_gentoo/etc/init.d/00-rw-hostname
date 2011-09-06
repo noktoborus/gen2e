@@ -5,7 +5,7 @@
 
 LIBRWINT="/etc/conf.d/00-rw"
 
-. "$LIBRWINIT"
+. "$LIBRWINT"
 
 depend() {
 	before hostname
