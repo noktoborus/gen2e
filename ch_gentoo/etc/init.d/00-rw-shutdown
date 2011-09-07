@@ -104,7 +104,7 @@ start() {
 		_home_check_rsyncd
 		if [ $? -eq 0 ];
 		then
-			rsync --daemon --pidfile /var/run/rsyncd.pid
+			/etc/init.d/rsyncd start
 		fi
 	)
 	eend $?
