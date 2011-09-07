@@ -100,12 +100,6 @@ start() {
 					;;
 			esac
 		done
-		# run rsync_
-		_home_check_rsyncd
-		if [ $? -eq 0 ];
-		then
-			/etc/init.d/rsyncd start
-		fi
 	)
 	eend $?
 	return 0

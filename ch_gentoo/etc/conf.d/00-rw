@@ -21,9 +21,11 @@ _home_get_mode() {
 	echo $mode
 }
 
-_home_check_rsyncd() {
+_home_check_post() {
+	cmd="$1"
+	[ -z "$cmd" ] && return 1
 	#cat /proc/cmdline | sed 's/.*init-rw-rsyncd=\([a-z]\).*\|.*/\1/'
-	grep 'init-rw-rsyncd=on' /proc/cmdline
+	grep "init-rw-post-${cmd}=on" /proc/cmdline
 }
 
 _home_check_user() {

@@ -1,0 +1,22 @@
+#!/sbin/runscript
+# Copyright 1999-2011 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Header: $
+
+LIBRWINIT="/etc/conf.d/00-rw"
+
+. "$LIBRWINIT"
+
+depend() {
+	after *
+}
+
+start() {
+	# run rsync_
+	_home_check_post rsyncd
+	if [ $? -eq 0 ];
+	then
+		/etc/init.d/rsyncd start
+	fi
+}
+
