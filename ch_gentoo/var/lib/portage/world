@@ -37,6 +37,7 @@ net-voip/twinkle
 sys-apps/iproute2
 sys-apps/lshw
 sys-block/nbd
+sys-boot/grub
 sys-fs/aufs2
 sys-fs/mdadm
 sys-kernel/hardened-sources
