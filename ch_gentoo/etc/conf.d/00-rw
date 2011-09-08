@@ -81,7 +81,7 @@ _home_get_hwid() {
 	esac
 	# hostname
 	echo $opts | grep '-hostname' 2>/dev/null
-	[ $? -ne 0 ] && hostname -s 2>/dev/null
+	[ $? -ne 0 ] && hostname 2>/dev/null
 }
 
 _home_untar() {

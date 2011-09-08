@@ -8,7 +8,8 @@ LIBRWINT="/etc/conf.d/00-rw"
 . "$LIBRWINT"
 
 depend() {
-	before hostname
+	provide hostname
+	before 00-rw-shutdown
 }
 
 start() {
@@ -34,7 +35,18 @@ start() {
 	else
 		einfo "init-rw-home ('$home_addr') or init-rw-home is 'none' ('$home_root'), /etc not be rewrited"
 	fi
-	[ -r "/etc/hostname" ] && hostname "`cat /etc/hostname`"
+	(
+		hostname=""
+		if [ -r "/etc/conf.d/hostname" ];
+		then
+			. "/etc/conf.d/hostname"
+		elif [ -r "/etc/hostname" ];
+		then
+			hostname="`cat /etc/hostname`"
+		fi
+		. "/etc/init.d/hostname"
+		start
+	)
 	eend $R
 	return 0
 }
