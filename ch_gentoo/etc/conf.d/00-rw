@@ -61,7 +61,7 @@ _home_get_hwid() {
 	opts=$(echo "$*" | tr ' ' '\n')
 	# get hwid for driver
 	case "$driver" in
-		tftp)
+		tftp|http)
 			for eif in $(ip link show | grep -e '.*<.*LOWER_UP.*>.*' | sed 's/[0-9]*: \([a-z0-9]*\).*\|\*/\1/');
 			do
 				[ -z "$eif" ] && continue
@@ -99,6 +99,9 @@ _home_untar() {
 	case "$driver" in
 		tftp)
 			( echo "mode binary"; echo "rexmt $timeout"; echo "timeout $timeout"; echo "get $path /dev/stderr" ) | ( tftp "$host" >/dev/null ) 2>&1 | tar -x 2>/dev/null
+			;;
+		http)
+			wget -O - --timeout="$timeout" "http://${host}/${path}" 2>/dev/null | tar -x 2>/dev/null
 			;;
 		none)
 			;;
