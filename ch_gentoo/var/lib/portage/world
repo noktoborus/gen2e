@@ -25,6 +25,8 @@ dev-vcs/git
 mail-client/thunderbird
 media-sound/audacity
 media-sound/qmmp
+net-analyzer/ifstat
+net-analyzer/iftop
 net-analyzer/netcat
 net-fs/fusesmb
 net-ftp/tftp-hpa
