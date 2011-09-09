@@ -13,6 +13,7 @@ app-arch/zip
 app-editors/gedit
 app-editors/vim
 app-emulation/wine
+app-misc/ddccontrol
 app-misc/tmux
 app-office/libreoffice
 app-portage/gentoolkit
@@ -22,6 +23,7 @@ dev-util/ccache
 dev-util/strace
 dev-vcs/git
 mail-client/thunderbird
+media-sound/audacity
 media-sound/qmmp
 net-analyzer/netcat
 net-fs/fusesmb
